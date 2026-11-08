@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>NotAngka — YouTube ke Not Angka</title>
+<style>
+:root{
+  --bg:#f4f2ee; --panel:#fff; --ink:#1c1b19; --muted:#6b675f; --line:#e3dfd6;
+  --accent:#b4461f; --accent-ink:#fff; --chord:#1f4fb4; --hl:#ffe6a3; --fs:22px;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+header.top{display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5}
+.brand{font-weight:800;letter-spacing:.2px;font-size:18px}
+.brand span{color:var(--accent)}
+.pill{font-size:12px;padding:3px 9px;border-radius:99px;background:#eee;color:var(--muted)}
+.pill.ok{background:#e4f3e6;color:#2b6b34}.pill.warn{background:#fdf0dc;color:#8a5a12}
+main{max-width:1180px;margin:0 auto;padding:18px 16px 60px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:16px}
+h2{font-size:15px;margin:0 0 10px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+input[type=text],input[type=number],select,textarea{font:inherit;border:1px solid #d6d1c6;border-radius:8px;padding:7px 9px;background:#fff;color:var(--ink)}
+input#url{flex:1;min-width:260px}
+button,.btn{font:inherit;border:1px solid #d6d1c6;background:#fff;border-radius:8px;padding:7px 12px;cursor:pointer;color:var(--ink)}
+button:hover{border-color:#b9b2a3}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+button:disabled{opacity:.45;cursor:not-allowed}
+label.file{border:1px dashed #c9c2b3;border-radius:8px;padding:7px 12px;cursor:pointer;color:var(--muted)}
+label.file input{display:none}
+.opts{margin-top:10px}
+.opts summary,.fix summary{cursor:pointer;color:var(--muted);font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px 16px;margin-top:10px}
+.grid label{display:flex;flex-direction:column;gap:3px;font-size:13px;color:var(--muted)}
+.grid label.chk{flex-direction:row;align-items:center;gap:7px;color:var(--ink)}
+.progress{margin-top:12px;display:none}
+.progress .track{height:8px;background:#eee;border-radius:99px;overflow:hidden}
+.progress .fill{height:100%;width:0;background:var(--accent);transition:width .4s}
+.progress .msg{font-size:13px;color:var(--muted);margin-top:5px}
+.err{color:#a3261b;font-size:14px;margin-top:8px;white-space:pre-wrap}
+.hist{margin-top:12px;font-size:13px;color:var(--muted)}
+.hist a{color:var(--ink);cursor:pointer;text-decoration:underline;text-decoration-color:#ccc;margin-right:12px;display:inline-block}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--line);margin-bottom:12px}
+.tg{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+.tg b{color:var(--ink);font-weight:600}
+.sugg{font-size:12px;color:var(--muted)}
+.sugg a{color:var(--chord);cursor:pointer;margin-left:6px}
+.info{font-size:13px;color:var(--muted);margin:6px 0 0}
+.note{font-size:14px;color:#5a4a20;background:#fff8e6;border-color:#f0dfb0}
+.media{margin:8px 0 12px}
+.media iframe{width:100%;max-width:560px;aspect-ratio:16/9;border:0;border-radius:8px}
+/* ---------- sheet ---------- */
+.sheet{background:#fff;color:#111;font-size:var(--fs);padding:10px 6px 20px;overflow-x:auto}
+.shead{text-align:center;margin-bottom:.6em}
+.shead .t{font-size:1.35em;font-weight:700;font-family:Georgia,"Times New Roman",serif}
+.shead .sub{display:flex;justify-content:space-between;font-size:.62em;font-style:italic;font-family:Georgia,serif;margin-top:.2em}
+.shead .gtr{font-size:.6em;color:var(--chord);font-style:normal;font-weight:600}
+.srow{position:relative;display:flex;flex-wrap:wrap;align-items:flex-start;margin:0 0 .5em;padding-left:3.4em}
+.srow .sec{position:absolute;left:0;top:2.1em;font-size:.58em;font-weight:700;width:5.6em;line-height:1.1}
+.bar{display:flex;align-items:flex-start}
+.beat{display:flex;margin:0 .2em}
+.atom{display:flex;flex-direction:column;align-items:center;min-width:.82em;padding:0 .06em;cursor:pointer;border-radius:3px}
+.atom.playing .num{background:var(--hl);border-radius:3px}
+.chord{position:relative;height:1.35em;width:100%}
+.chord b{position:absolute;left:0;bottom:.1em;white-space:nowrap;font-size:.74em;color:var(--chord);font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;font-weight:700}
+.oup,.odn{height:.4em;line-height:.4em;font-size:.55em;letter-spacing:-.05em;font-weight:700}
+.num{height:1.15em;line-height:1.15em;font-family:Georgia,"Times New Roman",serif;white-space:nowrap;padding:0 .05em}
+.num sup{font-size:.55em;vertical-align:.55em;margin-right:.03em}
+.ul{height:.17em;width:100%}
+.ul.on{border-bottom:.07em solid currentColor}
+.lyr{font-size:.6em;line-height:1.35;white-space:nowrap;font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;min-height:1.35em}
+.barline{align-self:stretch;border-left:.06em solid currentColor;margin:1.55em .12em 0;height:1.65em}
+.barline.final{border-left-width:.06em;box-shadow:.12em 0 0 0 currentColor;margin-right:.3em}
+.nolyr .lyr{display:none}
+.nochord .chord b{display:none}
+.nochord .chord{height:.5em}
+/* ---------- editor ---------- */
+.edwrap{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:14px;margin-top:14px}
+.edwrap textarea{width:100%;min-height:340px;font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre;overflow:auto}
+.help{font-size:12.5px;color:var(--muted)}
+.help code{background:#f1eee8;padding:0 4px;border-radius:4px;color:var(--ink)}
+.help table{border-collapse:collapse;width:100%}
+.help td{padding:2px 6px;border-bottom:1px solid #f0ece4;vertical-align:top}
+@media (max-width:820px){.edwrap{grid-template-columns:1fr}:root{--fs:18px}}
+@media print{
+  body{background:#fff}
+  header.top,.no-print{display:none!important}
+  main{max-width:none;padding:0}
+  .panel{border:0;padding:0;margin:0}
+  .sheet{overflow:visible;padding:0}
+  .chord b{color:#000}
+  .srow{break-inside:avoid}
+  .atom.playing .num{background:none}
+}
+</style>
+</head>
+<body>
+<header class="top no-print">
+  <div class="brand">Not<span>Angka</span></div>
+  <span class="pill" id="backend">memeriksa…</span>
+  <span style="flex:1"></span>
+  <span class="pill" id="featurePill" hidden></span>
+</header>
+<main>
+  <!-- ============ INPUT ============ -->
+  <section class="panel no-print" id="inputPanel">
+    <h2>Sumber lagu</h2>
+    <div class="row">
+      <input type="text" id="url" placeholder="Tempel link YouTube (cover piano, lagu asli, dll)">
+      <span style="color:var(--muted)">atau</span>
+      <label class="file"><input type="file" id="file" accept="audio/*,video/*"><span id="fileLabel">Pilih file audio/video</span></label>
+      <button class="primary" id="btnProcess">Proses</button>
+    </div>
+    <details class="opts">
+      <summary>Opsi analisis</summary>
+      <div class="grid">
+        <label>Jenis audio
+          <select id="optMode">
+            <option value="auto">Otomatis</option>
+            <option value="piano">Piano / instrumental solo</option>
+            <option value="vocal">Lagu dengan vokal (melodi dari suara penyanyi)</option>
+          </select></label>
+        <label>Birama
+          <select id="optMeter"><option>4/4</option><option>3/4</option><option>2/4</option><option>6/8</option><option>12/8</option></select></label>
+        <label>Perkiraan tempo (BPM, opsional)
+          <input type="number" id="optBpm" min="30" max="240" placeholder="otomatis"></label>
+        <label class="chk"><input type="checkbox" id="optSeparate" checked> Pisahkan vokal (Demucs)</label>
+        <label class="chk"><input type="checkbox" id="optLyrics"> Transkripsi lirik otomatis (Whisper)</label>
+        <label>Bahasa lirik
+          <select id="optLang"><option value="">Otomatis</option><option value="id">Indonesia</option><option value="en">English</option></select></label>
+        <label>Model Whisper
+          <select id="optWhisper"><option value="base">base (cepat)</option><option value="small" selected>small</option><option value="medium">medium (akurat, lambat)</option></select></label>
+        <label>Cookies YouTube (jika diminta verifikasi)
+          <select id="optCookies"><option value="">Tidak</option><option value="chrome">Chrome</option><option value="safari">Safari</option><option value="firefox">Firefox</option><option value="edge">Edge</option></select></label>
+      </div>
+    </details>
+    <div class="progress" id="progress"><div class="track"><div class="fill" id="pfill"></div></div><div class="msg" id="pmsg"></div></div>
+    <div class="err" id="err"></div>
+    <div class="hist" id="hist"></div>
+  </section>
+
+  <section class="panel note no-print" id="standalone" hidden>
+    <b>Mode editor.</b> Halaman ini tidak terhubung ke server lokal NotAngka, jadi proses link YouTube tidak tersedia di sini.
+    Fitur render, transpose, capo gitar, lirik, putar melodi, dan cetak tetap bisa dipakai. Pilih contoh lagu atau tempel teks not angka di editor.
+    Untuk memproses YouTube, jalankan aplikasi di Mac: <code>./run.sh</code> lalu buka <code>http://127.0.0.1:8765</code>.
+    <div class="row" style="margin-top:8px">Contoh (public domain):
+      <button data-sample="ag">Amazing Grace</button><button data-sample="tw">Twinkle Twinkle Little Star</button>
+    </div>
+  </section>
+
+  <!-- ============ RESULT ============ -->
+  <section class="panel" id="resultPanel">
+    <div class="toolbar no-print">
+      <div class="tg">Nada dasar <b id="origKey">–</b> → do =
+        <select id="selDo"></select>
+        <button id="tDown" title="Turun ½ nada">−½</button><button id="tUp" title="Naik ½ nada">+½</button>
+      </div>
+      <div class="tg">Capo gitar
+        <select id="selCapo"></select>
+      </div>
+      <div class="tg"><label><input type="checkbox" id="chkLyr" checked> Lirik</label>
+        <label><input type="checkbox" id="chkChord" checked> Chord</label></div>
+      <div class="tg">Birama/baris <select id="selBpl"><option value="0">Sumber</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></div>
+      <div class="tg">Ukuran <input type="range" id="rngFs" min="14" max="34" value="22"></div>
+      <div class="tg">
+        <button id="btnPlay">▶ Putar</button>
+        <select id="selRate" title="Kecepatan"><option value="0.6">60%</option><option value="0.8">80%</option><option value="1" selected>100%</option><option value="1.2">120%</option></select>
+      </div>
+      <div class="tg">
+        <button id="btnEdit">✎ Edit</button>
+        <button id="btnPrint">Cetak / PDF</button>
+        <button id="btnTxt">Unduh .txt</button>
+        <button id="btnCopy">Salin teks</button>
+        <button id="btnSave" hidden>Simpan</button>
+        <a class="btn" id="lnkMidi" hidden download>MIDI</a>
+      </div>
+    </div>
+    <div class="sugg no-print" id="sugg"></div>
+    <div class="info no-print" id="info"></div>
+
+    <details class="fix no-print" id="fixPanel" hidden>
+      <summary>Koreksi hasil deteksi (cepat, tanpa proses ulang audio)</summary>
+      <div class="grid">
+        <label>Birama <select id="pMeter"><option>4/4</option><option>3/4</option><option>2/4</option><option>6/8</option><option>12/8</option></select></label>
+        <label>Tempo terdeteksi
+          <select id="pTempo"><option value="1">Sesuai deteksi</option><option value="0.5">Terlalu cepat → ÷2</option><option value="2">Terlalu lambat → ×2</option><option value="0.3333">÷3 (untuk 6/8, 12/8)</option><option value="3">×3</option></select></label>
+        <label>Geser awal birama (ketukan)
+          <select id="pPhase"><option value="0">0 (otomatis)</option><option value="1">+1</option><option value="2">+2</option><option value="3">+3</option><option value="-1">−1</option></select></label>
+        <label>Nada dasar asli <select id="pKey"></select></label>
+        <label>Jenis chord <select id="pVocab"><option value="simple">Sederhana (mayor/minor)</option><option value="extended">Lengkap (+7, maj7, m7)</option></select></label>
+        <label>Pergantian chord <select id="pRate"><option value="auto">Otomatis</option><option value="beat">Tiap ketukan</option><option value="half">Tiap ½ birama</option><option value="bar">Tiap birama</option></select></label>
+        <label>Resolusi ritme <select id="pQuant"><option value="auto">Otomatis</option><option value="2">½ ketukan (lebih rapi)</option><option value="4">¼ ketukan (lebih detail)</option></select></label>
+        <label>Jeda pendek diisi titik <select id="pFill"><option value="0">Tidak</option><option value="0.5" selected>≤ ½ ketukan</option><option value="1">≤ 1 ketukan</option></select></label>
+        <label>Birama per baris <select id="pBpl"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option></select></label>
+        <label>Batas bawah melodi
+          <select id="pMin"><option value="">Otomatis</option><option value="48">C3</option><option value="55">G3</option><option value="60">C4 (tengah)</option><option value="64">E4</option><option value="67">G4</option></select></label>
+        <label class="chk"><input type="checkbox" id="pSustain" checked> Deteksi not panjang (sustain)</label>
+        <label class="chk"><input type="checkbox" id="pLyrics" checked> Sertakan lirik hasil Whisper</label>
+      </div>
+      <div class="row" style="margin-top:10px"><button class="primary" id="btnRenotate">Terapkan</button><span class="sugg">Mengganti teks dengan hasil baru (editan manual akan hilang).</span></div>
+    </details>
+
+    <div class="media no-print" id="media"></div>
+    <div class="sheet" id="sheet"></div>
+
+    <div class="edwrap no-print" id="edwrap" hidden>
+      <div>
+        <textarea id="editor" spellcheck="false"></textarea>
+      </div>
+      <div class="help">
+        <b>Format teks</b>
+        <table>
+          <tr><td><code>1</code>…<code>7</code></td><td>not (do re mi fa sol la si), <code>0</code> = diam, <code>.</code> = tahan</td></tr>
+          <tr><td><code>5'</code> <code>5,</code></td><td>titik atas / titik bawah (oktaf), <code>''</code> = 2 titik</td></tr>
+          <tr><td><code>#4</code> <code>b7</code></td><td>kres / mol</td></tr>
+          <tr><td>spasi</td><td>memisahkan ketukan: <code>5 6</code> = 2 ketukan</td></tr>
+          <tr><td><code>56</code></td><td>2 not dalam 1 ketukan (garis 1)</td></tr>
+          <tr><td><code>5(67)</code></td><td>½ + ¼ + ¼ ketukan</td></tr>
+          <tr><td><code>[Am]</code></td><td>chord di atas not berikutnya</td></tr>
+          <tr><td><code>|</code> <code>||</code></td><td>garis birama / akhir</td></tr>
+          <tr><td><code>@Reff</code></td><td>label bagian untuk baris berikutnya</td></tr>
+          <tr><td><code>L: ka- ta _</code></td><td>lirik baris di atasnya; 1 kata/suku per not, <code>_</code> = lewati not, <code>~</code> = spasi. Beberapa baris <code>L:</code> = bait 1, 2, …</td></tr>
+          <tr><td><code>key: E</code></td><td>nada dasar asli (<code>C#m</code> untuk minor → do = relatif mayor)</td></tr>
+        </table>
+        <p style="margin:12px 0 4px"><b>Tempel lirik → bagi otomatis ke not</b></p>
+        <textarea id="lyrPaste" style="min-height:110px;white-space:pre-wrap;font-family:inherit" placeholder="Tempel lirik di sini (lirik dari sumber resmi / ketik sendiri)"></textarea>
+        <div class="row" style="margin-top:6px">
+          <select id="lyrLang"><option value="id">Indonesia</option><option value="en">English</option></select>
+          <label class="tg"><input type="checkbox" id="lyrAdd"> tambah sebagai bait baru</label>
+          <button id="btnDistribute">Bagi ke not</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+"use strict";
+/* ================= music theory ================= */
+const SHARP=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+const FLAT=["C","Db","D","Eb","E","F","Gb","G","Ab","A","Bb","B"];
+const KEYS=["C","Db","D","Eb","E","F","F#","G","Ab","A","Bb","B"];
+const FLAT_DO=new Set([1,3,5,8,10]);
+const PC={C:0,"C#":1,Db:1,D:2,"D#":3,Eb:3,E:4,Fb:4,"E#":5,F:5,"F#":6,Gb:6,G:7,"G#":8,Ab:8,A:9,"A#":10,Bb:10,B:11,Cb:11,"B#":0};
+const DEG_SEMI={1:0,2:2,3:4,4:5,5:7,6:9,7:11};
+const mod=(a,n=12)=>((a%n)+n)%n;
+function spell(pc,doPc){return (FLAT_DO.has(mod(doPc))?FLAT:SHARP)[mod(pc)]}
+function parseKey(k){
+  const m=String(k||"C").trim().match(/^([A-Ga-g])([#b]?)(m?)/);
+  if(!m) return {tonic:0,minor:false,do:0};
+  const tonic=PC[m[1].toUpperCase()+m[2]]??0, minor=m[3]==="m";
+  return {tonic,minor,do:minor?mod(tonic+3):tonic};
+}
+function relMinorName(doPc){return spell(doPc+9,doPc)+"m"}
+function transposeChord(ch,shift,newDo){
+  return ch.split("/").map((part,i)=>{
+    const m=part.match(/^([A-G])([#b]?)(.*)$/); if(!m) return part;
+    const pc=PC[m[1]+m[2]]; if(pc===undefined) return part;
+    return spell(pc+shift,newDo)+(i===0?m[3]:"");
+  }).join("/");
+}
+const CHORD_IV={"":[0,4,7],m:[0,3,7],"7":[0,4,7,10],maj7:[0,4,7,11],m7:[0,3,7,10],dim:[0,3,6],aug:[0,4,8],sus4:[0,5,7],sus2:[0,2,7],"6":[0,4,7,9],m6:[0,3,7,9],"9":[0,4,7,10,14],add9:[0,4,7,14],dim7:[0,3,6,9],m7b5:[0,3,6,10]};
+function chordPitches(ch){
+  const m=ch.match(/^([A-G][#b]?)([^/]*)/); if(!m) return null;
+  const root=PC[m[1]]; if(root===undefined) return null;
+  let q=m[2]; if(!(q in CHORD_IV)) q=q.startsWith("m")&&!q.startsWith("maj")?"m":"";
+  return CHORD_IV[q].map(i=>root+i);
+}
+
+/* ================= parser ================= */
+function parseText(src){
+  const song={title:"",artist:"",key:"C",meter:"4/4",tempo:90,rows:[]};
+  let section=null,last=null;
+  for(const raw of src.split(/\r?\n/)){
+    const line=raw.trim();
+    if(!line||line.startsWith("//")) continue;
+    const h=line.match(/^(title|judul|artist|penyanyi|key|nada|meter|birama|tempo)\s*:\s*(.*)$/i);
+    if(h){const k=h[1].toLowerCase(),v=h[2].trim();
+      if(k==="title"||k==="judul")song.title=v; else if(k==="artist"||k==="penyanyi")song.artist=v;
+      else if(k==="key"||k==="nada")song.key=v; else if(k==="meter"||k==="birama")song.meter=v; else song.tempo=parseFloat(v)||90; continue;}
+    if(/^L\s*:/i.test(line)){ if(last) last.lyrics.push(line.replace(/^L\s*:\s*/i,"").split(/\s+/).filter(Boolean)); continue;}
+    if(line.startsWith("@")){section=line.slice(1).trim();continue;}
+    const row={section,bars:[],lyrics:[]}; section=null;
+    const segs=line.split("|"); let carry=null;
+    segs.forEach((seg,si)=>{
+      const t=seg.trim();
+      if(!t){ if(si>0&&segs[si-1].trim()===""&&row.bars.length) row.bars[row.bars.length-1].final=true; return;}
+      const bar={beats:[],final:false};
+      for(const tok of t.split(/\s+/)){
+        const r=parseBeat(tok,carry); carry=r.carry;
+        if(r.atoms.length) bar.beats.push(r.atoms);
+      }
+      if(bar.beats.length) row.bars.push(bar);
+    });
+    if(/\|\|\s*$/.test(line)&&row.bars.length) row.bars[row.bars.length-1].final=true;
+    if(row.bars.length){song.rows.push(row);last=row;}
+  }
+  // attach syllables
+  for(const row of song.rows){
+    const notes=[]; row.bars.forEach(b=>b.beats.forEach(bt=>bt.forEach(a=>{if(a.type==="note")notes.push(a)})));
+    notes.forEach(n=>n.syls=[]);
+    row.lyrics.forEach(ly=>notes.forEach((n,i)=>{const t=ly[i];n.syls.push(t&&t!=="_"?t.replace(/~/g," "):"")}));
+  }
+  return song;
+}
+function parseBeat(tok,carry){
+  let i=0;
+  function items(end){
+    const out=[];let chord=null;
+    while(i<tok.length){
+      const c=tok[i];
+      if(c===end){i++;break;}
+      if(c==="["){const j=tok.indexOf("]",i);if(j<0){i=tok.length;break;}chord=tok.slice(i+1,j).trim();i=j+1;continue;}
+      if(c==="("){i++;const g=items(")");out.push({group:g,chord});chord=null;continue;}
+      let acc="";
+      if((c==="#"||c==="b")&&/[0-7]/.test(tok[i+1]||"")){acc=c;i++;}
+      const d=tok[i];
+      if(d==="."||d==="-"){out.push({type:"hold",chord});i++;chord=null;continue;}
+      if(/[0-7]/.test(d)){i++;let oct=0;while(i<tok.length&&/['’,]/.test(tok[i])){oct+=tok[i]===","?-1:1;i++;}
+        out.push(d==="0"?{type:"rest",chord}:{type:"note",deg:+d,acc,oct,chord});chord=null;continue;}
+      i++;
+    }
+    if(chord) out.push({chordOnly:chord});
+    return out;
+  }
+  const its=items(null);
+  const atoms=[];
+  let pending=carry;
+  const real=its.filter(x=>!x.chordOnly);
+  const trailing=its.filter(x=>x.chordOnly).map(x=>x.chordOnly).pop()||null;
+  (function flat(list,dur){
+    const n=list.length;
+    list.forEach(it=>{
+      const d=dur/n;
+      if(it.group){ if(it.chord){pending=it.chord;} flat(it.group.filter(x=>!x.chordOnly),d); }
+      else{ const a={...it,dur:d}; if(!a.chord&&pending){a.chord=pending;} pending=null; atoms.push(a); }
+    });
+  })(real,1);
+  return {atoms,carry:real.length?trailing:(trailing||carry)};
+}
+function levelOf(d){return d>0.999?0:d>0.2501?1:d>0.1251?2:3}
+
+/* ================= state ================= */
+const $=id=>document.getElementById(id);
+const S={text:"",song:null,origDo:0,origMinor:false,doSel:0,capo:0,jobId:null,backend:false,features:{},meta:null,atoms:[]};
+
+function fillSelects(){
+  const selDo=$("selDo"); selDo.innerHTML="";
+  KEYS.forEach((k,i)=>{const o=document.createElement("option");o.value=i;o.textContent=S.origMinor?`${k} (${relMinorName(i)})`:k;selDo.appendChild(o);});
+  selDo.value=S.doSel;
+  const capo=$("selCapo"); if(!capo.options.length){for(let c=0;c<=9;c++){const o=document.createElement("option");o.value=c;o.textContent=c?`capo ${c}`:"tanpa capo";capo.appendChild(o);}}
+  capo.value=S.capo;
+  const pk=$("pKey"); if(!pk.options.length){
+    pk.innerHTML='<option value="">Otomatis</option>'+KEYS.map(k=>`<option>${k}</option>`).join("")+KEYS.map((k,i)=>`<option>${spell(i,mod(i+3))}m</option>`).join("");}
+}
+
+/* ================= render ================= */
+function render(){
+  let song;
+  try{song=parseText(S.text);}catch(e){$("sheet").textContent="Format tidak valid: "+e.message;return;}
+  S.song=song;
+  const k=parseKey(song.key);
+  if(k.do!==S.origDo||k.minor!==S.origMinor){S.origDo=k.do;S.origMinor=k.minor;S.doSel=k.do;S.capo=0;}
+  fillSelects();
+  $("origKey").textContent=song.key||"C";
+  const soundDo=S.doSel, chordDo=mod(soundDo-S.capo), shift=mod(chordDo-S.origDo);
+  const sheet=$("sheet"); sheet.innerHTML="";
+  sheet.classList.toggle("nolyr",!$("chkLyr").checked);
+  sheet.classList.toggle("nochord",!$("chkChord").checked);
+  // header
+  const head=document.createElement("div");head.className="shead";
+  const doName=KEYS[soundDo]+(S.origMinor?` (${relMinorName(soundDo)})`:"");
+  head.innerHTML=`<div class="t"></div><div class="sub"><span>do = ${doName}, ${esc(song.meter)} &nbsp;·&nbsp; tempo ${Math.round(song.tempo)}</span><span class="ar"></span></div>`+
+    (S.capo?`<div class="gtr">Gitar: capo ${S.capo} — kunci dimainkan dengan bentuk ${KEYS[chordDo]}${S.origMinor?` (${relMinorName(chordDo)})`:""}</div>`:"");
+  head.querySelector(".t").textContent=song.title||"Tanpa judul";
+  head.querySelector(".ar").textContent=song.artist||"";
+  sheet.appendChild(head);
+  // reflow
+  let rows=song.rows;
+  const bpl=+$("selBpl").value;
+  if(bpl>0){
+    const N=meterBeats(song.meter);const flat=[];
+    rows.forEach(r=>r.bars.forEach((b,bi)=>flat.push({bar:b,section:bi===0?r.section:null})));
+    rows=[];let cur=null,count=0;
+    flat.forEach((f,idx)=>{
+      if(!cur||f.section||count>=bpl){cur={section:f.section,bars:[]};rows.push(cur);count=0;}
+      cur.bars.push(f.bar);
+      const pickup=idx===0&&f.bar.beats.length<N;
+      if(!pickup) count++;
+    });
+  }
+  S.atoms=[];
+  const nv=maxVerses(song);
+  rows.forEach(r=>{
+    const row=document.createElement("div");row.className="srow";
+    if(r.section){const s=document.createElement("div");s.className="sec";s.textContent=r.section;row.appendChild(s);}
+    let first=true;
+    r.bars.forEach((bar,bi)=>{
+      const be=document.createElement("div");be.className="bar";
+      bar.beats.forEach(beat=>{
+        const bt=document.createElement("div");bt.className="beat";
+        const multi=beat.length>1;
+        beat.forEach((a,ai)=>{
+          const lv=levelOf(a.dur);
+          const el=document.createElement("div");el.className="atom";
+          let chord=a.chord?transposeChord(a.chord,shift,chordDo):"";
+          const ch=document.createElement("div");ch.className="chord";if(chord){const b=document.createElement("b");b.textContent=chord;ch.appendChild(b);}
+          el.appendChild(ch);
+          const up=document.createElement("div");up.className="oup";
+          const num=document.createElement("div");num.className="num";
+          const dn=document.createElement("div");dn.className="odn";
+          if(a.type==="note"){
+            if(a.oct>0)up.textContent="•".repeat(a.oct);
+            if(a.oct<0)dn.textContent="•".repeat(-a.oct);
+            num.innerHTML=(a.acc?`<sup>${a.acc==="#"?"#":"b"}</sup>`:"")+a.deg;
+          }else num.textContent=a.type==="rest"?"0":".";
+          el.appendChild(up);el.appendChild(num);
+          const u1=document.createElement("div");u1.className="ul"+(lv>=1?" on":"");
+          const u2=document.createElement("div");u2.className="ul"+(lv>=2?" on":"");
+          el.appendChild(u1);el.appendChild(u2);el.appendChild(dn);
+          const syls=a.syls||[];
+          for(let v=0;v<nv;v++){const l=document.createElement("div");l.className="lyr";l.textContent=syls[v]||"";el.appendChild(l);}
+          const idx=S.atoms.length; el.dataset.i=idx;
+          el.addEventListener("click",()=>{ if(!$("edwrap").hidden) return; playFrom(idx); });
+          S.atoms.push({a,el});
+          bt.appendChild(el);
+        });
+        be.appendChild(bt);
+      });
+      row.appendChild(be);
+      const bl=document.createElement("div");bl.className="barline"+(bar.final?" final":"");row.appendChild(bl);
+    });
+    sheet.appendChild(row);
+  });
+  renderSuggestions();
+}
+function maxVerses(song){let m=0;song.rows.forEach(r=>m=Math.max(m,r.lyrics.length));return m||1}
+function meterBeats(m){return {"4/4":4,"3/4":3,"2/4":2,"6/8":2,"12/8":4}[m]||parseInt(m)||4}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+
+function renderSuggestions(){
+  const easyMaj=[0,7,2,9,4], easyMin=[0,7,5]; // do of shapes: C G D A E / Am Em Dm
+  const pool=S.origMinor?easyMin:easyMaj;
+  const out=[];
+  for(let c=0;c<=7&&out.length<3;c++){const shape=mod(S.doSel-c);if(pool.includes(shape))out.push([c,shape]);}
+  $("sugg").innerHTML=out.length?"Saran gitar:"+out.map(([c,sh])=>`<a data-capo="${c}">${c?"capo "+c:"tanpa capo"} → bentuk ${S.origMinor?relMinorName(sh):KEYS[sh]}</a>`).join(""):"";
+  $("sugg").querySelectorAll("a").forEach(a=>a.onclick=()=>{S.capo=+a.dataset.capo;render();});
+}
+
+/* ================= playback ================= */
+let AC=null,playing=false,hlTimer=null;
+function stop(){playing=false;if(AC){AC.close();AC=null;}$("btnPlay").textContent="▶ Putar";S.atoms.forEach(x=>x.el.classList.remove("playing"));cancelAnimationFrame(hlTimer);}
+function playFrom(start){
+  stop();
+  if(!S.atoms.length) return;
+  AC=new (window.AudioContext||window.webkitAudioContext)();
+  playing=true;$("btnPlay").textContent="■ Stop";
+  const rate=+$("selRate").value, spb=60/((S.song.tempo||90)*rate);
+  const soundShift=mod(S.doSel-S.origDo);
+  const doMidi=(S.doSel<=4?60:48)+S.doSel;
+  const master=AC.createGain();master.gain.value=0.32;master.connect(AC.destination);
+  const t0=AC.currentTime+0.12;
+  const evs=[];let t=0,cur=null,curChord=null;
+  // chord active at start
+  for(let i=start;i>=0;i--){if(S.atoms[i].a.chord){curChord={ch:S.atoms[i].a.chord,t:0};break;}}
+  const chords=[];
+  for(let i=start;i<S.atoms.length;i++){
+    const {a,el}=S.atoms[i];const d=a.dur*spb;
+    if(a.chord&&i!==start){if(curChord){curChord.end=t;chords.push(curChord);}curChord={ch:a.chord,t};}
+    if(a.type==="note"){if(cur){cur.end=t;evs.push(cur);}cur={midi:doMidi+DEG_SEMI[a.deg]+(a.acc==="#"?1:a.acc==="b"?-1:0)+12*a.oct,t};}
+    else if(a.type==="rest"){if(cur){cur.end=t;evs.push(cur);cur=null;}}
+    evs.push({hl:el,t});
+    t+=d;
+  }
+  if(cur){cur.end=t;evs.push(cur);} if(curChord){curChord.end=t;chords.push(curChord);}
+  evs.filter(e=>e.midi!==undefined).forEach(e=>voice(master,e.midi,t0+e.t,e.end-e.t,"triangle",0.55));
+  chords.forEach(c=>{const ps=chordPitches(transposeChord(c.ch,soundShift,S.doSel));if(!ps)return;
+    ps.slice(0,4).forEach((p,i)=>{let m=48+mod(p);if(i===0)m-=12;voice(master,m,t0+c.t,c.end-c.t,"sine",i===0?0.22:0.12);});});
+  const hls=evs.filter(e=>e.hl);let k=0,lastEl=null;
+  const total=t;
+  (function tick(){
+    if(!playing||!AC) return;
+    const now=AC.currentTime-t0;
+    while(k<hls.length&&hls[k].t<=now){ if(lastEl)lastEl.classList.remove("playing"); lastEl=hls[k].hl; lastEl.classList.add("playing"); k++;}
+    if(now>total+0.5){stop();return;}
+    hlTimer=requestAnimationFrame(tick);
+  })();
+}
+function voice(dest,midi,t,dur,type,vol){
+  const f=440*Math.pow(2,(midi-69)/12);
+  const o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.value=f;
+  const end=t+Math.max(0.08,dur);
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+0.012);
+  g.gain.exponentialRampToValueAtTime(vol*0.45,t+Math.min(0.5,dur*0.8)+0.02);
+  g.gain.setValueAtTime(vol*0.45,end-0.03);g.gain.linearRampToValueAtTime(0.0001,end+0.08);
+  o.connect(g);g.connect(dest);o.start(t);o.stop(end+0.1);
+}
+
+/* ================= lyrics distribution ================= */
+const VOW=/[aeiouyàáâäèéêëìíîïòóôöùúûü]/i;
+function syllabify(word,lang){
+  const core=word; const low=core.toLowerCase(); const n=low.length;
+  if(n<=2) return [word];
+  const indo=lang==="id";
+  let v=[...low].map(c=>VOW.test(c)&&!(c==="y"&&(indo)));
+  if(low[0]==="y") v[0]=false;
+  if(!indo){
+    if(low.endsWith("e")&&n>=3&&!v[n-2]&&v.slice(0,-1).some(Boolean)&&low[n-2]!=="l") v[n-1]=false;
+    if(low.endsWith("ed")&&n>3&&!"td".includes(low[n-3])&&v.slice(0,-2).some(Boolean)) v[n-2]=false;
+  }
+  const g=[];let i=0;
+  while(i<n){ if(v[i]){let j=i;
+      if(indo){ if(i+2===n&&v[i+1]&&["ai","au","oi","ei"].includes(low.slice(i,i+2))) j=i+1; }
+      else while(j+1<n&&v[j+1]) j++;
+      g.push([i,j]); i=j+1;} else i++; }
+  if(!indo&&g.length>=2&&low.endsWith("le")&&n>3&&!v[n-3]) g[g.length-1]=[n-1,n-1];
+  if(g.length<=1) return [word];
+  const DG=["ng","ny","kh","sy","ch","sh","th","ph","gh","wh","ck"];
+  const cuts=[];
+  for(let x=0;x<g.length-1;x++){
+    const b1=g[x][1],a2=g[x+1][0],cons=low.slice(b1+1,a2);let cut;
+    if(!indo&&a2===n-1&&low.endsWith("le")) cut=a2-2;
+    else if(cons.length===0) cut=a2; else if(cons.length===1) cut=b1+1;
+    else if(DG.includes(cons.slice(-2))) cut=a2-2; else cut=a2-1;
+    cuts.push(Math.max(cut,b1+1));
+  }
+  const parts=[];let p=0;cuts.forEach(c=>{parts.push(core.slice(p,c));p=c;});parts.push(core.slice(p));
+  return parts.filter(Boolean);
+}
+function distributeLyrics(){
+  const raw=$("lyrPaste").value.trim(); if(!raw) return;
+  const lang=$("lyrLang").value, add=$("lyrAdd").checked;
+  const syl=[];
+  raw.split(/\s+/).forEach(w=>{const ps=syllabify(w,lang);ps.forEach((s,i)=>syl.push(s+(i<ps.length-1?"-":"")));});
+  const lines=$("editor").value.split(/\r?\n/);
+  const out=[];let k=0;
+  for(let i=0;i<lines.length;i++){
+    const t=lines[i].trim();
+    out.push(lines[i]);
+    if(!t||/^(title|judul|artist|penyanyi|key|nada|meter|birama|tempo)\s*:/i.test(t)||t.startsWith("@")||t.startsWith("//")||/^L\s*:/i.test(t)) continue;
+    // music line: count notes
+    const song=parseText(t);const nNotes=song.rows.length?song.rows[0].bars.reduce((s,b)=>s+b.beats.reduce((x,bt)=>x+bt.filter(a=>a.type==="note").length,0),0):0;
+    // existing L: lines following
+    let j=i+1;const existing=[];while(j<lines.length&&/^\s*L\s*:/i.test(lines[j])){existing.push(lines[j]);j++;}
+    const toks=syl.slice(k,k+nNotes);k+=nNotes;
+    while(toks.length<nNotes) toks.push("_");
+    const newL="L: "+toks.join(" ");
+    if(add){ existing.forEach(e=>out.push(e)); out.push(newL); }
+    else { out.push(newL); existing.slice(1).forEach(e=>out.push(e)); }
+    i=j-1;
+  }
+  setText(out.join("\n"));
+}
+
+/* ================= samples (public domain) ================= */
+const SAMPLES={
+ag:`title: Amazing Grace
+artist: Lirik John Newton (1779), melodi "New Britain" — public domain
+key: G
+meter: 3/4
+tempo: 80
+
+@Bait
+[G]5, | 1 . 31 | [G7]3 . 2 | [C]1 . 6, | [G]5, . 5, |
+L: A- ma- zing _ grace how sweet the sound that
+[G]1 . 31 | [Em]3 . 23 | [D]5 . . | . . 3 |
+L: saved a _ wretch like _ me I
+[G]5 . 31 | [G7]3 . 2 | [C]1 . 6, | [G]5, . 5, |
+L: once was _ lost but now am found was
+[G]1 . 31 | [D]3 . 2 | [G]1 . . | . . ||
+L: blind but _ now I see`,
+tw:`title: Twinkle Twinkle Little Star
+artist: Melodi tradisional Prancis, lirik Jane Taylor (1806) — public domain
+key: C
+meter: 4/4
+tempo: 100
+
+@Bait
+[C]1 1 5 5 | [F]6 6 [C]5 . | [F]4 4 [C]3 3 | [G]2 2 [C]1 . |
+L: Twin- kle twin- kle lit- tle star how I won- der what you are
+[C]5 5 [F]4 4 | [C]3 3 [G]2 . | [C]5 5 [F]4 4 | [C]3 3 [G]2 . |
+L: Up a- bove the world so high like a dia- mond in the sky
+[C]1 1 5 5 | [F]6 6 [C]5 . | [F]4 4 [C]3 3 | [G]2 2 [C]1 . ||
+L: Twin- kle twin- kle lit- tle star how I won- der what you are`
+};
+
+/* ================= wiring ================= */
+let editTimer=null;
+function setText(t,{fromEditor=false}={}){
+  S.text=t; if(!fromEditor) $("editor").value=t;
+  render();
+  if(!S.backend){try{localStorage.setItem("notangka_text",t)}catch(e){}}
+}
+$("editor").addEventListener("input",()=>{clearTimeout(editTimer);editTimer=setTimeout(()=>setText($("editor").value,{fromEditor:true}),250);});
+$("selDo").onchange=e=>{S.doSel=+e.target.value;render();};
+$("tUp").onclick=()=>{S.doSel=mod(S.doSel+1);render();};
+$("tDown").onclick=()=>{S.doSel=mod(S.doSel-1);render();};
+$("selCapo").onchange=e=>{S.capo=+e.target.value;render();};
+$("chkLyr").onchange=render;$("chkChord").onchange=render;$("selBpl").onchange=render;
+$("rngFs").oninput=e=>document.documentElement.style.setProperty("--fs",e.target.value+"px");
+$("btnPlay").onclick=()=>playing?stop():playFrom(0);
+$("btnEdit").onclick=()=>{$("edwrap").hidden=!$("edwrap").hidden;};
+$("btnPrint").onclick=()=>{const old=document.title;document.title=(S.song&&S.song.title)||"NotAngka";window.print();document.title=old;};
+$("btnTxt").onclick=()=>{const b=new Blob([S.text],{type:"text/plain"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=((S.song&&S.song.title)||"notangka").replace(/[^\w\- ]+/g,"_")+".txt";a.click();};
+$("btnDistribute").onclick=distributeLyrics;
+$("btnCopy").onclick=async()=>{try{await navigator.clipboard.writeText(S.text);$("btnCopy").textContent="Tersalin ✓";}
+  catch(e){$("editor").select();$("edwrap").hidden=false;$("btnCopy").textContent="Salin manual (Cmd+C)";}
+  setTimeout(()=>$("btnCopy").textContent="Salin teks",1800);};
+document.querySelectorAll("[data-sample]").forEach(b=>b.onclick=()=>{S.jobId=null;setText(SAMPLES[b.dataset.sample]);});
+$("file").onchange=e=>{$("fileLabel").textContent=e.target.files[0]?e.target.files[0].name:"Pilih file audio/video";};
+
+/* ---------- backend ---------- */
+async function api(path,opt){const r=await fetch(path,opt);if(!r.ok){let m=r.statusText;try{m=(await r.json()).detail||m}catch(e){}throw new Error(m);}return r.json();}
+async function init(){
+  try{
+    const h=await api("/api/health");
+    S.backend=true;S.features=h.features||{};
+    $("backend").textContent="server lokal aktif";$("backend").className="pill ok";
+    const f=S.features,miss=[];if(!f.demucs)miss.push("Demucs");if(!f.whisper)miss.push("Whisper");
+    if(!f.basic_pitch)miss.push("basic-pitch");
+    if(miss.length){$("featurePill").hidden=false;$("featurePill").className="pill warn";$("featurePill").textContent="Belum terinstall: "+miss.join(", ");}
+    if(!f.demucs){$("optSeparate").checked=false;$("optSeparate").disabled=true;}
+    if(!f.whisper){$("optLyrics").disabled=true;}
+    $("btnSave").hidden=false;
+    loadHistory();
+    setText(SAMPLES.ag);
+  }catch(e){
+    S.backend=false;
+    $("backend").textContent="mode editor (tanpa server)";$("backend").className="pill warn";
+    $("inputPanel").hidden=true;$("standalone").hidden=false;
+    let framed=false;try{framed=window.self!==window.top;}catch(err){framed=true;}
+    if(framed){$("btnPrint").hidden=true;$("btnTxt").hidden=true;}
+    let t=null;try{t=localStorage.getItem("notangka_text")}catch(err){}
+    setText(t||SAMPLES.ag);
+  }
+}
+async function loadHistory(){
+  try{const items=await api("/api/jobs");const done=items.filter(x=>x.status==="done");
+    $("hist").innerHTML=done.length?"Riwayat: "+done.slice(0,12).map(x=>`<a data-id="${x.id}">${esc(x.title||x.id)}${x.key?` (${esc(x.key)})`:""}</a>`).join(""):"";
+    $("hist").querySelectorAll("a").forEach(a=>a.onclick=()=>loadJob(a.dataset.id));}catch(e){}
+}
+$("btnProcess").onclick=async()=>{
+  $("err").textContent="";
+  const url=$("url").value.trim(),file=$("file").files[0];
+  if(!url&&!file){$("err").textContent="Isi link YouTube atau pilih file.";return;}
+  const fd=new FormData();fd.append("url",url);if(file&&!url)fd.append("file",file);
+  fd.append("options",JSON.stringify({mode:$("optMode").value,separate:$("optSeparate").checked,lyrics:$("optLyrics").checked,
+    lyrics_lang:$("optLang").value,whisper_model:$("optWhisper").value,bpm_hint:+$("optBpm").value||null,cookies_browser:$("optCookies").value}));
+  fd.append("params",JSON.stringify({meter:$("optMeter").value}));
+  $("btnProcess").disabled=true;$("progress").style.display="block";$("pfill").style.width="1%";$("pmsg").textContent="Mengirim…";
+  try{const {id}=await api("/api/jobs",{method:"POST",body:fd});poll(id);}
+  catch(e){$("err").textContent=e.message;$("btnProcess").disabled=false;}
+};
+async function poll(id){
+  try{
+    const s=await api("/api/jobs/"+id);
+    $("pfill").style.width=Math.round((s.progress||0)*100)+"%";$("pmsg").textContent=s.message||"";
+    if(s.status==="done"){$("btnProcess").disabled=false;$("progress").style.display="none";showJob(id,s);loadHistory();return;}
+    if(s.status==="error"){$("btnProcess").disabled=false;$("err").textContent="Gagal: "+s.message;return;}
+    setTimeout(()=>poll(id),1200);
+  }catch(e){$("err").textContent=e.message;$("btnProcess").disabled=false;}
+}
+async function loadJob(id){try{const s=await api("/api/jobs/"+id);if(s.status==="done")showJob(id,s);}catch(e){$("err").textContent=e.message;}}
+function showJob(id,s){
+  S.jobId=id;S.meta=s.meta;
+  S.origDo=-1;setText(s.text);
+  const m=s.meta||{};
+  $("info").textContent=`Terdeteksi: nada dasar ${m.key} · ±${Math.round(m.bpm)} BPM · mode ${m.mode==="vocal"?"vokal":"piano/instrumental"} · ${m.n_melody_notes} not melodi`+(m.warning?` · ⚠ ${m.warning}`:"")+(s.edited?" · (versi editan)":"");
+  $("fixPanel").hidden=false;
+  const P=m.params||{};
+  $("pMeter").value=P.meter||"4/4";$("pTempo").value=String(P.tempo_factor??1);$("pPhase").value=String(P.phase_shift??0);
+  $("pKey").value=P.key_override||"";$("pVocab").value=P.chord_vocab||"simple";$("pRate").value=P.chord_rate||"auto";
+  $("pQuant").value=P.quant||"auto";$("pFill").value=String(P.fill_gap??0.5);$("pBpl").value=String(P.bars_per_line||4);
+  $("pMin").value=P.melody_min_pitch?String(P.melody_min_pitch):"";$("pSustain").checked=P.sustain!==false;$("pLyrics").checked=P.lyrics!==false;
+  $("pLyrics").disabled=!m.has_words;
+  $("lnkMidi").hidden=false;$("lnkMidi").href=`/api/jobs/${id}/midi`;
+  const media=$("media");media.innerHTML="";
+  if(m.youtube_id){const f=document.createElement("iframe");f.src=`https://www.youtube.com/embed/${encodeURIComponent(m.youtube_id)}`;f.allow="encrypted-media; picture-in-picture";f.allowFullscreen=true;media.appendChild(f);}
+  else{const a=document.createElement("audio");a.controls=true;a.src=`/api/jobs/${id}/audio`;a.style.width="100%";media.appendChild(a);}
+}
+$("btnRenotate").onclick=async()=>{
+  if(!S.jobId) return;
+  const P={meter:$("pMeter").value,tempo_factor:+$("pTempo").value,phase_shift:+$("pPhase").value,key_override:$("pKey").value,
+    chord_vocab:$("pVocab").value,chord_rate:$("pRate").value,quant:$("pQuant").value,fill_gap:+$("pFill").value,
+    bars_per_line:+$("pBpl").value,melody_min_pitch:$("pMin").value?+$("pMin").value:null,sustain:$("pSustain").checked,lyrics:$("pLyrics").checked};
+  $("btnRenotate").disabled=true;
+  try{const r=await api(`/api/jobs/${S.jobId}/renotate`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(P)});
+    S.origDo=-1;setText(r.text);S.meta=r.meta;
+    const m=r.meta;$("info").textContent=`Terdeteksi: nada dasar ${m.key} · ±${Math.round(m.bpm)} BPM · ${m.n_melody_notes} not melodi`;}
+  catch(e){alert("Gagal: "+e.message);}
+  $("btnRenotate").disabled=false;
+};
+$("btnSave").onclick=async()=>{
+  if(!S.jobId){alert("Belum ada hasil dari server untuk disimpan. Gunakan Unduh .txt.");return;}
+  try{await api(`/api/jobs/${S.jobId}/save`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:S.text})});$("btnSave").textContent="Tersimpan ✓";setTimeout(()=>$("btnSave").textContent="Simpan",1500);}
+  catch(e){alert(e.message);}
+};
+init();
+</script>
+</body>
+</html>

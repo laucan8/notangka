@@ -1,0 +1,7 @@
+# Opsional (disarankan): separasi vokal + transkripsi lirik
+# Demucs memisahkan vokal dari musik -> melodi lagu bervokal jauh lebih akurat.
+torch>=2.1,<2.9
+torchaudio>=2.1,<2.9
+demucs==4.0.1
+# Whisper (versi cepat) untuk lirik otomatis + timestamp per kata
+faster-whisper>=1.1
