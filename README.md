@@ -4,10 +4,18 @@ Aplikasi lokal (jalan di Mac kamu) yang mengubah **link YouTube** (cover piano, 
 lembar **not angka**: melodi tangan kanan (angka 1–7, titik oktaf, garis harga not) dan **chord** di atasnya untuk
 tangan kiri / gitar. Bisa **transpose**, kasih **saran capo gitar**, dan **lirik** (otomatis via Whisper atau tempel manual).
 
+## 0. Halaman online
+
+**https://laucan8.github.io/notangka/** — tempel link YouTube di sana. Halaman ini terhubung otomatis ke server
+NotAngka yang berjalan di Mac kamu (`./run.sh`), jadi audio diproses di komputer sendiri (gratis & privat).
+Tanpa server lokal, halaman tetap bisa dipakai untuk melihat contoh, transpose, capo, lirik, putar, dan edit.
+Gunakan Chrome (izinkan akses jaringan lokal jika diminta); di Safari buka `http://127.0.0.1:8765`.
+
 ## 1. Setup (sekali saja, macOS)
 
 ```bash
-cd ~/Downloads/notangka          # folder hasil unzip
+git clone https://github.com/laucan8/notangka.git
+cd notangka
 bash setup_mac.sh                # inti: not + chord   (~400 MB)
 # atau
 bash setup_mac.sh --full         # + pisah vokal (Demucs) + lirik otomatis (Whisper)  (~2 GB, disarankan)
@@ -91,14 +99,15 @@ L: ka- ta- kan _ pa- da _ ku
 | `ffmpeg tidak ditemukan` | `brew install ffmpeg` |
 | `yt-dlp butuh JavaScript runtime` | `brew install deno` |
 | Demucs/Whisper "belum terinstall" | `source .venv/bin/activate && pip install -r requirements-extra.txt` |
-| Port 8765 dipakai | `NOTANGKA_PORT=8800 ./run.sh` |
+| Port 8765 dipakai | `NOTANGKA_PORT=8800 ./run.sh`, lalu ubah alamat server di ikon ⚙ halaman online |
+| Halaman online tidak terhubung | Pastikan `./run.sh` jalan; di Chrome izinkan "akses jaringan lokal"; atau buka `http://127.0.0.1:8765` |
 | Mau coba Demucs pakai GPU M1 | `NOTANGKA_DEMUCS_DEVICE=mps ./run.sh` (eksperimental; default cpu) |
 
 ## 8. Struktur
 
 ```
 app.py                 server FastAPI + API job
-static/index.html      UI: render not angka, transpose, capo, lirik, putar, edit, cetak (bisa juga dibuka tanpa server = mode editor)
+docs/index.html        UI (juga dipublikasikan via GitHub Pages): input YouTube, render not angka, transpose, capo, lirik, putar, edit, cetak
 notangka/audio.py      download YouTube (yt-dlp), konversi, Demucs
 notangka/transcribe.py basic-pitch (Spotify) → not; ekstraksi melodi (top-voice + kontinuitas)
 notangka/analysis.py   beat, chroma, nada dasar (Krumhansl), chord (template + Viterbi), awal birama

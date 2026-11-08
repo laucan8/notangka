@@ -9,7 +9,8 @@ scikit-learn>=1.3
 mir_eval>=0.7
 pretty_midi>=0.2.10
 onnxruntime>=1.17
-fastapi>=0.110
+fastapi>=0.115
+starlette>=0.46        # allow_private_network (CORS ke 127.0.0.1)
 uvicorn>=0.27
 python-multipart>=0.0.9
 yt-dlp[default]>=2025.11.12   # [default] = termasuk yt-dlp-ejs (YouTube JS challenge)

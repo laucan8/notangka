@@ -14,7 +14,8 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from fastapi import Body, FastAPI, File, Form, HTTPException, UploadFile
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
 from notangka import __version__
 from notangka.pipeline import NOTATION_DEFAULTS, analyze, features_available, notate
@@ -25,6 +26,13 @@ DATA.mkdir(parents=True, exist_ok=True)
 PORT = int(os.environ.get("NOTANGKA_PORT", "8765"))
 
 app = FastAPI(title="NotAngka", version=__version__)
+
+# Halaman online (GitHub Pages) boleh memanggil server lokal ini. Tambah origin lain via NOTANGKA_ORIGINS.
+ORIGINS = ["https://laucan8.github.io", f"http://127.0.0.1:{PORT}", f"http://localhost:{PORT}"]
+ORIGINS += [o.strip() for o in os.environ.get("NOTANGKA_ORIGINS", "").split(",") if o.strip()]
+# allow_private_network: Chrome mengizinkan halaman https publik memanggil 127.0.0.1
+app.add_middleware(CORSMiddleware, allow_origins=ORIGINS, allow_methods=["*"], allow_headers=["*"],
+                   allow_private_network=True)
 pool = ThreadPoolExecutor(max_workers=1)   # audio jobs are heavy: one at a time
 JOBS: dict[str, dict] = {}
 LOCK = threading.Lock()
@@ -67,7 +75,7 @@ def _run(job_id, url, file_path, opts, params):
 
 @app.get("/")
 def index():
-    return FileResponse(ROOT / "static" / "index.html")
+    return FileResponse(ROOT / "docs" / "index.html")
 
 
 @app.get("/api/health")
