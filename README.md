@@ -14,8 +14,9 @@ Gunakan Chrome (izinkan akses jaringan lokal jika diminta); di Safari buka `http
 ## 1. Setup (sekali saja, macOS)
 
 ```bash
+cd ~
 git clone https://github.com/laucan8/notangka.git
-cd notangka
+cd ~/notangka
 bash setup_mac.sh                # inti: not + chord   (~400 MB)
 # atau
 bash setup_mac.sh --full         # + pisah vokal (Demucs) + lirik otomatis (Whisper)  (~2 GB, disarankan)
@@ -27,7 +28,8 @@ lalu membuat virtualenv `.venv`. Model Whisper (±250–500 MB) diunduh otomatis
 ## 2. Menjalankan
 
 ```bash
-./run.sh            # atau double-click NotAngka.command
+cd ~/notangka && ./run.sh     # atau double-click NotAngka.command
+# catatan: jangan 'cd notangka' dari dalam folder repo — itu masuk ke subfolder kode Python
 ```
 
 Browser terbuka di `http://127.0.0.1:8765`. Tempel link YouTube → **Proses**. Lagu 4 menit: ±30–60 detik (inti),
