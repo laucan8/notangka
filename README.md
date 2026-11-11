@@ -7,7 +7,7 @@ tangan kiri / gitar. Bisa **transpose**, kasih **saran capo gitar**, dan **lirik
 ## 0. Halaman online
 
 **https://laucan8.github.io/notangka/** — tempel link YouTube di sana. Halaman ini terhubung otomatis ke server
-NotAngka yang berjalan di Mac kamu (`./run.sh`), jadi audio diproses di komputer sendiri (gratis & privat).
+NotAngka di Mac kamu (aplikasi NotAngka di Dock, lihat bagian 2), jadi audio diproses di komputer sendiri (gratis & privat).
 Tanpa server lokal, halaman tetap bisa dipakai untuk melihat contoh, transpose, capo, lirik, putar, dan edit.
 Gunakan Chrome (izinkan akses jaringan lokal jika diminta); di Safari buka `http://127.0.0.1:8765`.
 
