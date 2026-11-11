@@ -25,15 +25,17 @@ bash setup_mac.sh --full         # + pisah vokal (Demucs) + lirik otomatis (Whis
 Butuh [Homebrew](https://brew.sh). Skrip memasang `python@3.11`, `ffmpeg`, dan `deno` (dipakai yt-dlp untuk YouTube),
 lalu membuat virtualenv `.venv`. Model Whisper (±250–500 MB) diunduh otomatis saat pertama dipakai.
 
-## 2. Menjalankan
+## 2. Jadikan aplikasi Mac (disarankan — sekali saja)
 
 ```bash
-cd ~/notangka && ./run.sh     # atau double-click NotAngka.command
-# catatan: jangan 'cd notangka' dari dalam folder repo — itu masuk ke subfolder kode Python
+bash ~/notangka/mac/install.sh       # atau double-click mac/Install NotAngka.command di Finder
 ```
 
-Browser terbuka di `http://127.0.0.1:8765`. Tempel link YouTube → **Proses**. Lagu 4 menit: ±30–60 detik (inti),
-±2–5 menit jika pakai Demucs + Whisper di M1.
+Ini memasang **NotAngka.app** (ikon di Dock & Launchpad) dan server yang **jalan otomatis di latar belakang** setiap
+Mac menyala. Setelah itu cukup klik ikon NotAngka — tidak perlu Terminal lagi. Aplikasi juga mengambil pembaruan
+dari GitHub otomatis saat dibuka. Hapus dengan `bash ~/notangka/mac/uninstall.sh`. Log: `~/Library/Logs/NotAngka.log`.
+
+Cara manual (tanpa aplikasi): `cd ~/notangka && ./run.sh`, lalu buka `http://127.0.0.1:8765`.
 
 Command line juga bisa:
 
@@ -102,7 +104,7 @@ L: ka- ta- kan _ pa- da _ ku
 | `yt-dlp butuh JavaScript runtime` | `brew install deno` |
 | Demucs/Whisper "belum terinstall" | `source .venv/bin/activate && pip install -r requirements-extra.txt` |
 | Port 8765 dipakai | `NOTANGKA_PORT=8800 ./run.sh`, lalu ubah alamat server di ikon ⚙ halaman online |
-| Halaman online tidak terhubung | Pastikan `./run.sh` jalan; di Chrome izinkan "akses jaringan lokal"; atau buka `http://127.0.0.1:8765` |
+| Halaman online tidak terhubung | Klik ikon NotAngka di Dock (atau `./run.sh`); di Chrome izinkan "akses jaringan lokal"; atau buka `http://127.0.0.1:8765` |
 | Mau coba Demucs pakai GPU M1 | `NOTANGKA_DEMUCS_DEVICE=mps ./run.sh` (eksperimental; default cpu) |
 
 ## 8. Struktur

@@ -344,8 +344,8 @@ kbd{font:600 11px var(--ui);border:1px solid var(--border-strong);border-bottom-
       <div class="notice" id="offlineNotice" hidden>
         <div style="font-size:18px">⚡</div>
         <div style="flex:1">
-          <b>Server NotAngka di Mac belum aktif.</b> Pemrosesan audio berjalan di komputer kamu (gratis &amp; privat). Jalankan <code>./run.sh</code> di folder NotAngka — halaman ini akan terhubung otomatis.
-          <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn sm" id="btnHowto">Lihat cara menjalankan</button><button type="button" class="btn sm" id="btnRetry">Cek lagi</button></div>
+          <b>Aplikasi NotAngka di Mac belum terbuka.</b> Pemrosesan audio berjalan di komputer kamu (gratis &amp; privat). Klik ikon <b>NotAngka</b> di Dock — halaman ini akan terhubung otomatis. Belum terpasang? Lihat cara memasang (sekali saja).
+          <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn sm" id="btnHowto">Cara memasang</button><button type="button" class="btn sm" id="btnRetry">Cek lagi</button></div>
         </div>
       </div>
 
@@ -486,14 +486,13 @@ kbd{font:600 11px var(--ui);border:1px solid var(--border-strong);border-bottom-
 <!-- modals -->
 <div class="modal-bg" id="howto" hidden>
   <div class="modal">
-    <h2>Jalankan NotAngka di Mac</h2>
-    <p>Pemrosesan YouTube berjalan di komputer kamu. Sekali setup, lalu cukup jalankan server setiap mau dipakai.</p>
+    <h2>Pasang NotAngka di Mac (sekali saja)</h2>
+    <p>Setelah terpasang, NotAngka menjadi aplikasi biasa: server jalan sendiri di latar belakang setiap Mac menyala. Tidak perlu Terminal lagi.</p>
     <ol>
-      <li>Unduh kode & setup (sekali saja, butuh <a href="https://brew.sh" target="_blank" rel="noopener">Homebrew</a>):
-        <div class="cmd"><code>cd ~ &amp;&amp; git clone https://github.com/laucan8/notangka.git &amp;&amp; cd ~/notangka &amp;&amp; bash setup_mac.sh --full</code><button data-copy>Salin</button></div></li>
-      <li>Jalankan server (setiap kali mau pakai):
-        <div class="cmd"><code>cd ~/notangka &amp;&amp; ./run.sh</code><button data-copy>Salin</button></div></li>
-      <li>Kembali ke halaman ini — status di kanan atas berubah jadi <b>Terhubung</b>. Di Chrome, izinkan akses jaringan lokal jika diminta. Di Safari, buka <b>http://127.0.0.1:8765</b> (tampilan yang sama).</li>
+      <li>Buka Terminal, tempel perintah ini, tekan Enter (butuh <a href="https://brew.sh" target="_blank" rel="noopener">Homebrew</a>; pertama kali ±10–20 menit):
+        <div class="cmd"><code>cd ~ &amp;&amp; (git clone https://github.com/laucan8/notangka.git || true) &amp;&amp; bash ~/notangka/mac/install.sh</code><button data-copy>Salin</button></div></li>
+      <li>Selesai. Ikon <b>NotAngka</b> muncul di Dock &amp; Launchpad — klik untuk membuka. Aplikasi juga memperbarui dirinya otomatis.</li>
+      <li>Halaman online ini juga ikut terhubung. Di Chrome, klik <b>Izinkan</b> bila diminta akses jaringan lokal.</li>
     </ol>
     <div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn" data-close>Tutup</button></div>
   </div>
