@@ -122,6 +122,7 @@ label.field select,label.field input{font-weight:500;color:var(--text);font-size
 .rec-dot{width:12px;height:12px;border-radius:50%;background:#cbd5e1}
 .rec-dot.on{background:#ef4444;animation:pulse 1s infinite}
 @keyframes pulse{50%{opacity:.35}}
+.browser-mode .server-only{display:none!important}
 .engine-note{margin-top:10px;font-size:12.5px;color:var(--muted);display:flex;gap:6px;align-items:center}
 .btn.rec{background:#ef4444;border-color:#ef4444;color:#fff}
 .btn.rec:hover{background:#dc2626}
@@ -346,16 +347,17 @@ kbd{font:600 11px var(--ui);border:1px solid var(--border-strong);border-bottom-
         <div class="grp"><span class="lbl">Birama</span>
           <select id="optMeter"><option>4/4</option><option>3/4</option><option>2/4</option><option>6/8</option><option>12/8</option></select>
         </div>
-        <label class="switch" style="gap:8px"><input type="checkbox" id="optLyrics"><span>Lirik otomatis</span></label>
+        <label class="switch" style="gap:8px"><input type="checkbox" id="optLyrics" checked><span>Lirik otomatis</span></label>
         <button type="button" class="btn ghost sm" id="btnMore">Opsi lanjutan ▾</button>
       </div>
       <div class="more-opts" id="moreOpts" hidden>
         <div class="grid">
           <label class="field">Bahasa lirik<select id="optLang"><option value="">Otomatis</option><option value="id">Indonesia</option><option value="en">English</option></select></label>
-          <label class="field">Model Whisper<select id="optWhisper"><option value="base">base — cepat</option><option value="small" selected>small — seimbang</option><option value="medium">medium — akurat, lambat</option></select></label>
+          <label class="field">Model lirik (Whisper)<select id="optWhisper"><option value="tiny">tiny — tercepat (±40 MB)</option><option value="base" selected>base — seimbang (±110 MB)</option><option value="small">small — paling akurat (±320 MB)</option></select></label>
+          <label class="field">Kecepatan rekam YouTube<select id="optRate"><option value="1">1× (kualitas terbaik)</option><option value="1.5">1,5× (lebih cepat)</option><option value="2">2× (tercepat)</option></select></label>
           <label class="field">Perkiraan tempo (BPM)<input type="number" id="optBpm" min="30" max="240" placeholder="otomatis"></label>
-          <label class="field">Cookies YouTube<select id="optCookies"><option value="">Tidak dipakai</option><option value="chrome">Dari Chrome</option><option value="safari">Dari Safari</option><option value="firefox">Dari Firefox</option><option value="edge">Dari Edge</option></select></label>
-          <label class="switch" style="align-self:end"><span>Pisahkan vokal (Demucs)</span><input type="checkbox" id="optSeparate" checked></label>
+          <label class="field server-only">Cookies YouTube<select id="optCookies"><option value="">Tidak dipakai</option><option value="chrome">Dari Chrome</option><option value="safari">Dari Safari</option><option value="firefox">Dari Firefox</option><option value="edge">Dari Edge</option></select></label>
+          <label class="switch server-only" style="align-self:end"><span>Pisahkan vokal (Demucs)</span><input type="checkbox" id="optSeparate" checked></label>
         </div>
       </div>
 
@@ -530,7 +532,8 @@ kbd{font:600 11px var(--ui);border:1px solid var(--border-strong);border-bottom-
       <li><b>File</b>: pilih file audio/video (mp3, m4a, wav, mp4…) → <b>Proses</b>. Paling cepat &amp; akurat.</li>
       <li><b>Mikrofon</b> (cocok di HP): putar lagunya dari speaker lain, klik <b>Mikrofon</b> → rekam → selesai.</li>
     </ol>
-    <p style="margin-top:4px"><b>Opsional — aplikasi Mac</b> untuk hasil lagu bervokal yang lebih akurat (pisah vokal) &amp; lirik otomatis:</p>
+    <p style="margin-top:4px">Pisah vokal &amp; lirik otomatis berjalan di browser memakai GPU (WebGPU, mis. Chrome di Mac M1). Model AI diunduh sekali (±180 MB) lalu tersimpan di browser.</p>
+    <p style="margin-top:4px"><b>Opsional — aplikasi Mac</b>: unduh link YouTube langsung tanpa perlu merekam tab:</p>
     <div class="cmd"><code>cd ~ &amp;&amp; (git clone https://github.com/laucan8/notangka.git || true) &amp;&amp; bash ~/notangka/mac/install.sh</code><button data-copy>Salin</button></div>
     <p style="margin-top:8px;font-size:12.5px">Jika aplikasi Mac berjalan, halaman ini otomatis memakainya (status kanan atas: <b>Terhubung</b>).</p>
     <div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn" data-close>Tutup</button></div>
@@ -752,7 +755,9 @@ function renderSuggestions(){
 function setBadges(m){
   const b=[];
   if(S.isSample) b.push(`<span class="badge p">Contoh</span>`);
-  if(m){ b.push(`<span class="badge p">Nada ${esc(m.key)}</span>`,`<span class="badge">±${Math.round(m.bpm)} BPM</span>`,`<span class="badge">${m.mode==="browser"?"Diproses di browser":m.mode==="vocal"?"Melodi dari vokal":"Piano / instrumen"}</span>`,`<span class="badge">${m.n_melody_notes} not</span>`);
+  if(m){ b.push(`<span class="badge p">Nada ${esc(m.key)}</span>`,`<span class="badge">±${Math.round(m.bpm)} BPM</span>`,`<span class="badge">${m.mode==="vocal"?"Melodi dari vokal":m.mode==="browser"?"Diproses di browser":"Piano / instrumen"}</span>`,`<span class="badge">${m.n_melody_notes} not</span>`);
+    if(m.has_words) b.push(`<span class="badge">Lirik otomatis</span>`);
+    if(m.timing&&m.timing.total) b.push(`<span class="badge" title="${esc(Object.entries(m.timing).map(([k,v])=>k+": "+(v/1000).toFixed(1)+" dtk").join(", "))}">${(m.timing.total/1000).toFixed(0)} dtk${m.gpu&&m.gpu.ok?" · GPU":""}</span>`);
     if(m.warning) b.push(`<span class="badge w" title="${esc(m.warning)}">⚠ peringatan</span>`);}
   $("badges").innerHTML=b.join("");
 }
@@ -915,10 +920,9 @@ function setConn(state){
   t.textContent=state==="ok"?"Aplikasi Mac terhubung":state==="off"?"Mode browser":"Memeriksa…";
   c.title=state==="ok"?"Diproses oleh aplikasi NotAngka di Mac (pisah vokal & lirik otomatis tersedia)":"Diproses langsung di browser — tanpa server";
   $("engineNote").textContent=state==="ok"?"⚡ Diproses oleh aplikasi NotAngka di Mac kamu — link YouTube langsung diunduh, pisah vokal & lirik otomatis tersedia.":"🔒 Diproses langsung di browser kamu — tanpa server, tanpa upload.";
-  if(state!=="ok"){
-    $("optSeparate").checked=false;$("optSeparate").disabled=true;$("optLyrics").checked=false;$("optLyrics").disabled=true;
-    $("optLyrics").parentElement.title="Lirik otomatis butuh aplikasi Mac (opsional). Di browser: tempel lirik lewat Edit.";
-  }
+  document.body.classList.toggle("browser-mode",state!=="ok");
+  $("optLyrics").disabled=false;$("optLyrics").parentElement.title="";
+  if(state!=="ok") updateGpuNote();
 }
 async function probe(base){
   const ctl=new AbortController();const to=setTimeout(()=>ctl.abort(),2500);
@@ -1056,40 +1060,73 @@ async function renotate(){
 }
 
 /* ================= browser engine (tanpa server) ================= */
+let GPU=null;
+async function updateGpuNote(){
+  if(S.backend) return;
+  if(!GPU){ try{ await loadEngine(); GPU=await NotAngkaEngine.probeGPU(); }catch(e){ GPU={ok:false}; } }
+  if(S.backend) return;
+  $("engineNote").innerHTML=GPU.ok
+    ?"⚡ Diproses di browser dengan <b>GPU (WebGPU)</b> — pisah vokal &amp; lirik otomatis tersedia. Tanpa server, tanpa upload."
+    :"🔒 Diproses di browser (tanpa server). Perangkat ini <b>tanpa WebGPU</b>: pisah vokal &amp; lirik akan sangat lambat — untuk itu gunakan Chrome terbaru di laptop.";
+}
 const fmt=s=>`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,"0")}`;
 function loadScript(src){return new Promise((res,rej)=>{const el=document.createElement("script");el.src=src;el.async=true;el.onload=res;el.onerror=()=>rej(new Error("Gagal memuat "+src));document.head.appendChild(el);});}
 let enginePromise=null;
 function loadEngine(){
-  if(!enginePromise) enginePromise=(async()=>{if(!window.NotAngkaBP)await loadScript("vendor/basic-pitch.js");if(!window.NotAngkaEngine)await loadScript("engine.js");})().catch(e=>{enginePromise=null;throw e;});
+  if(!enginePromise) enginePromise=(async()=>{if(!window.NotAngkaEngine)await loadScript("engine.js");})().catch(e=>{enginePromise=null;throw e;});
   return enginePromise;
 }
-const LOCAL_STEPS=[
-  {k:"load",label:"Siapkan audio",re:/Memuat|Menyiapkan/i},
-  {k:"ai",label:"Transkripsi not (AI)",re:/Transkripsi/i},
-  {k:"ana",label:"Ketukan & chord",re:/Analisis/i},
-  {k:"not",label:"Susun not angka",re:/Menyusun|Selesai/i},
-];
+function localSteps(sep,lyr){
+  const st=[{k:"prep",label:"Siapkan audio",re:/^prep$/}];
+  if(sep) st.push({k:"separate",label:"Pisah vokal (AI)",re:/^separate$/});
+  st.push({k:"notes",label:"Transkripsi not (AI)",re:/^notes$/});
+  if(lyr) st.push({k:"lyrics",label:"Lirik (Whisper)",re:/^lyrics$/});
+  st.push({k:"analysis",label:"Ketukan, chord & not angka",re:/^analysis$/});
+  return st;
+}
 function startProgress(steps){
   activeSteps=steps;$("steps").innerHTML=steps.map(s=>`<li data-k="${s.k}"><i></i>${s.label}</li>`).join("");
   $("progress").hidden=false;$("pfill").style.width="1%";$("btnProcess").disabled=true;$("btnMic").disabled=true;
   startT=Date.now();clearInterval(timerT);timerT=setInterval(()=>{$("ptime").textContent=fmt((Date.now()-startT)/1000);},500);
 }
-function setProgress(p,m){$("pfill").style.width=Math.max(1,Math.round(p*100))+"%";$("pmsg").textContent=m;updateSteps(m,p>=1);}
+function setProgress(p,m){$("pfill").style.width=Math.max(1,Math.round(p*100))+"%";$("pmsg").textContent=m;}
+function setStage(k,done){
+  const idx=done?activeSteps.length:activeSteps.findIndex(s=>s.k===k);
+  if(idx<0) return;
+  [...$("steps").children].forEach((li,i)=>{li.className=i<idx?"done":i===idx?"active":"";li.querySelector("i").textContent=i<idx?"✓":"";});
+}
 async function runLocalFromBlob(blob,info){
   $("err").hidden=true;stop();
-  startProgress(LOCAL_STEPS);
+  try{ await loadEngine(); if(!GPU) GPU=await NotAngkaEngine.probeGPU(); }catch(e){ GPU=GPU||{ok:false}; }
+  // jenis audio -> pisah vokal: otomatis (hanya bila ada GPU) / piano: tidak / bervokal: ya
+  const sep=S.mode==="piano"?"off":S.mode==="vocal"?"on":(GPU&&GPU.ok?"auto":"off");
+  const lyr=$("optLyrics").checked;
+  if(!GPU.ok&&(sep==="on"||lyr)) toast("Tanpa WebGPU: pisah vokal / lirik akan lambat");
+  const W={prep:[0,0.03],separate:sep!=="off"?[0.03,0.5]:null,notes:null,lyrics:null,analysis:null};
+  let at=sep!=="off"?0.5:0.03; const span=1-at-0.05;
+  W.notes=[at,at+(lyr?span*0.35:span)]; at=W.notes[1];
+  if(lyr){W.lyrics=[at,1-0.05];at=1-0.05;}
+  W.analysis=[at,1];
+  startProgress(localSteps(sep!=="off",lyr));
+  const t0=Date.now();
   try{
-    setProgress(0.01,"Memuat mesin AI…");await loadEngine();
-    setProgress(0.02,"Menyiapkan audio…");
+    setStage("prep");setProgress(0.01,"Membaca audio…");
     let pcm;
-    try{pcm=await NotAngkaEngine.decodeTo22k(await blob.arrayBuffer());}
+    try{pcm=await NotAngkaEngine.decodeTo44k(await blob.arrayBuffer());}
     catch(e){throw new Error("Format audio tidak bisa dibaca browser ini. Coba file mp3/m4a/wav.");}
-    if(pcm.length<NotAngkaEngine.SR*3) throw new Error("Audio terlalu pendek (minimal 3 detik).");
+    if(pcm.length<44100*3) throw new Error("Audio terlalu pendek (minimal 3 detik).");
+    let lastStage="prep";
     const res=await NotAngkaEngine.analyze(pcm,{meter:$("optMeter").value,bpm_hint:+$("optBpm").value||null,title:info.title||"Tanpa judul",artist:info.artist||"",
-      modelUrl:"model/model.json",params:{melody_min_pitch:S.mode==="vocal"?50:null}},(p,m)=>setProgress(0.03+0.97*p,m));
-    clearInterval(timerT);setProgress(1,"Selesai");$("btnProcess").disabled=false;$("btnMic").disabled=false;
+      separate:sep,lyrics:lyr,lang:$("optLang").value,whisper:$("optWhisper").value,timeScale:info.timeScale||1,
+      params:{}},(stage,p,m)=>{
+        if(stage==="download"){ $("pmsg").textContent=m; return; }
+        if(stage!==lastStage){lastStage=stage;setStage(stage);}
+        const w=W[stage]||[0,1]; setProgress(w[0]+(w[1]-w[0])*p,m);
+      });
+    clearInterval(timerT);setStage(null,true);setProgress(1,"Selesai");$("btnProcess").disabled=false;$("btnMic").disabled=false;
     setTimeout(()=>{$("progress").hidden=true;},900);
-    showLocal(res,info,blob);toast("Not angka siap ✓");
+    showLocal(res,info,blob);
+    toast(`Not angka siap ✓ (${fmt((Date.now()-t0)/1000)})`);
   }catch(e){fail(e.message||String(e));}
 }
 function showLocal(res,info,blob){
@@ -1189,7 +1226,8 @@ async function startRecording(){
     R.t0=Date.now();$("recDot").classList.add("on");
     R.timer=setInterval(()=>{const sec=(Date.now()-R.t0)/1000;$("recTime").textContent=fmt(sec);if(sec>=900)finishRecording();},500);
     $("recStart").disabled=true;$("recStop").disabled=false;
-    if(R.player&&R.player.seekTo){try{R.player.seekTo(0,true);R.player.playVideo();}catch(e){}}
+    R.rate=+$("optRate").value||1;
+    if(R.player&&R.player.seekTo){try{R.player.setPlaybackRate(R.rate);R.player.seekTo(0,true);R.player.playVideo();}catch(e){}}
     $("recHint").textContent=R.mode==="mic"?"Merekam… klik Selesai jika sudah.":(R.otherTab?"Merekam tab yang dipilih… putar videonya, lalu klik Selesai.":"Merekam audio tab… biarkan video berjalan sampai selesai.");
   }catch(e){
     stopStreams();R.rec=null;
@@ -1213,7 +1251,7 @@ function finishRecording(){
     stopStreams();$("recStart").disabled=false;$("recStop").disabled=true;
     const blob=new Blob(R.chunks,{type:rec.mimeType||"audio/webm"});
     if(secs<3||!blob.size){$("recHint").textContent="Rekaman terlalu pendek (minimal 3 detik).";return;}
-    const info=R.mode==="mic"?{title:"Rekaman "+new Date().toLocaleString("id-ID"),source:"mic"}:{title:R.title||"Video YouTube",artist:R.artist||"",ytId:R.ytId,source:"youtube"};
+    const info=R.mode==="mic"?{title:"Rekaman "+new Date().toLocaleString("id-ID"),source:"mic"}:{title:R.title||"Video YouTube",artist:R.artist||"",ytId:R.ytId,source:"youtube",timeScale:(R.player&&!R.otherTab)?(R.rate||1):1};
     $("recorder").hidden=true;
     if(S.backend&&R.mode==="mic") submitServer("",blob,"rekaman.webm"); else runLocalFromBlob(blob,info);
   };

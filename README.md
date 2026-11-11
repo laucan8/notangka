@@ -6,20 +6,32 @@ tangan kiri / gitar. Bisa **transpose**, kasih **saran capo gitar**, dan **lirik
 
 ## 0. Langsung pakai di browser (tanpa install)
 
-**https://laucan8.github.io/notangka/** — semua diproses **di browser kamu** (model AI basic-pitch versi TF.js):
+**https://laucan8.github.io/notangka/** — semua AI berjalan **di browser kamu** (ONNX Runtime Web; memakai **GPU via WebGPU**
+bila tersedia, mis. Chrome di Mac M1):
+
+| Tahap | Model | Unduhan pertama |
+|---|---|---|
+| Pisah vokal | MDX-Net *Kim_Vocal_2* (Ultimate Vocal Remover) | ±67 MB |
+| Transkripsi not | Spotify *basic-pitch* (ONNX) | 0,2 MB |
+| Lirik otomatis | Whisper *base* timestamped (transformers.js) — atau tiny/small | ±110 MB |
+| Runtime | ONNX Runtime Web (WASM/WebGPU) | ±30 MB |
+
+Model diunduh sekali lalu tersimpan di browser. Melodi diambil dari **vokal yang sudah dipisah**, chord dari **musiknya**,
+dan lirik ditempatkan per suku kata ke not.
 
 | Input | Cara | Perangkat |
 |---|---|---|
-| **Link YouTube** | Tempel link → **Proses** → **Mulai rekam** → pilih *tab ini* + aktifkan **"Bagikan audio tab"**. Audio direkam selama video diputar (real-time), lalu dianalisis. | Chrome / Edge di laptop |
+| **Link YouTube** | Tempel link → **Proses** → **Mulai rekam** → pilih *tab ini* + aktifkan **"Bagikan audio tab"**. Bisa direkam 1,5×/2× lebih cepat (Opsi lanjutan). | Chrome / Edge di laptop |
 | **File** | Pilih mp3/m4a/wav/mp4 → **Proses**. Paling cepat & akurat. | Semua |
 | **Mikrofon** | Putar lagu dari speaker lain → **Mikrofon** → rekam → **Selesai**. | HP & laptop |
 
-Browser tidak bisa mengunduh audio YouTube secara langsung (dibatasi YouTube & keamanan browser), karena itu link
-YouTube diproses dengan merekam audio tab. Hasil tersimpan di **Riwayat** (penyimpanan browser).
-Mode browser belum punya pisah vokal & lirik otomatis — lirik bisa ditempel lewat **Edit → Tempel lirik**.
+Catatan: browser tidak bisa mengunduh audio YouTube langsung (dibatasi YouTube & keamanan browser), karena itu link
+YouTube diproses dengan merekam audio tab. Tanpa WebGPU (mis. sebagian HP), pisah vokal & lirik berjalan di CPU dan
+jauh lebih lambat — untuk perangkat seperti itu pilih *Piano / instrumen* dan matikan *Lirik otomatis*.
 
-Aplikasi Mac di bawah ini **opsional**: bila berjalan, halaman otomatis memakainya (unduh YouTube langsung,
-pisah vokal Demucs, lirik Whisper).
+Kode worker AI ada di `web/` (bundel: `cd web && npm install && bash build.sh` → `docs/vendor/ai-worker.js`).
+
+Aplikasi Mac di bawah ini **opsional** (unduh YouTube langsung tanpa merekam; Demucs + faster-whisper native).
 
 ## 1. Setup (sekali saja, macOS)
 

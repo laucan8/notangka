@@ -1,5 +1,5 @@
 /* NotAngka browser engine — audio → not angka, 100% di browser (tanpa server).
- * Port dari pipeline Python (notangka/*.py). Butuh vendor/basic-pitch.js (window.NotAngkaBP).
+ * Port dari pipeline Python (notangka/*.py). Model AI berjalan di vendor/ai-worker.js (ONNX Runtime Web).
  */
 (function (global) {
 "use strict";
@@ -148,6 +148,26 @@ function extractMelody(notes, minPitch = 55, maxPitch = 96, minDur = 0.07, onset
     if (Math.abs(b - a) >= 12 && Math.abs(b - c) >= 12 && Math.abs(a - c) <= 5) out[i][2] = b - 12 * Math.round((b - (a + c) / 2) / 12);
   }
   return out;
+}
+function smoothVocal(mel) {
+  // singing: glides & vibrato split one sung note into fragments -> merge them
+  let out = mel.map(n => n.slice());
+  for (let pass = 0; pass < 2; pass++) {
+    const res = [];
+    for (const n of out) {
+      const L = res[res.length - 1];
+      if (L) {
+        const gap = n[0] - L[1], dL = L[1] - L[0], dN = n[1] - n[0];
+        if (gap < 0.05 && Math.abs(n[2] - L[2]) <= 1 && Math.min(dL, dN) < 0.13) {
+          L[2] = dL >= dN ? L[2] : n[2]; L[1] = Math.max(L[1], n[1]); L[3] = Math.max(L[3], n[3]); continue;
+        }
+      }
+      res.push(n);
+    }
+    out = res;
+  }
+  // drop very short blips sandwiched between notes of the same pitch
+  return out.filter((n, i) => !(i > 0 && i < out.length - 1 && n[1] - n[0] < 0.09 && out[i - 1][2] === out[i + 1][2] && Math.abs(n[2] - out[i - 1][2]) <= 2));
 }
 function accompanimentNotes(notes, melody) {
   const keys = new Set(melody.map(m => m[0].toFixed(2) + ":" + m[2]));
@@ -408,7 +428,7 @@ function chooseBase(melody, doPc) {
   }
   return bb;
 }
-function quantise(melody, grid, R, compound, quant, fillGap) {
+function quantise(melody, grid, R, compound, quant, fillGap, tol = 0.075) {
   if (!melody.length) return [];
   const on = melody.map(m => posOf(m[0], grid)), off = melody.map(m => posOf(m[1], grid));
   const Gopts = compound ? [3] : quant === "2" ? [2] : quant === "4" ? [4] : [2, 4];
@@ -422,7 +442,7 @@ function quantise(melody, grid, R, compound, quant, fillGap) {
       const e2 = idxs.reduce((s, i, q) => s + Math.abs(on[i] * 2 - q2[q]), 0) / 2;
       const e4 = idxs.reduce((s, i) => s + Math.abs(on[i] * 4 - roundHalfEven(on[i] * 4)), 0) / 4;
       const collide = new Set(q2).size < idxs.length;
-      if (collide || (e2 - e4) > 0.075 * idxs.length) G = 4;
+      if (collide || (e2 - e4) > tol * idxs.length) G = 4;
     }
     choice.set(b, G);
     for (const i of idxs) slotOn[i] = Math.round(roundHalfEven(on[i] * G) / G * R);
@@ -457,7 +477,7 @@ function beatAtoms(syms, R, compound) {
 }
 function buildText(melody, grid, labels, phase, meter, doPc, tonic, mode, bpm, o = {}) {
   const [N, compound] = METERS[meter] || [4, false], R = compound ? 3 : 4;
-  const ev = quantise(melody, grid, R, compound, o.quant || "auto", o.fillGap ?? 0.5);
+  const ev = quantise(melody, grid, R, compound, o.quant || "auto", o.fillGap ?? 0.5, o.quantTol || 0.075);
   const base = chooseBase(melody, doPc);
   const head = [`title: ${o.title || "Tanpa judul"}`]; if (o.artist) head.push(`artist: ${o.artist}`);
   head.push(`key: ${keyLabel(tonic, mode)}`, `meter: ${meter}`, `tempo: ${Math.round(bpm)}`, "");
@@ -505,84 +525,134 @@ function buildText(melody, grid, labels, phase, meter, doPc, tonic, mode, bpm, o
   return { text: head.concat(body).join("\n"), bars: bars.length, pickup, base };
 }
 
-/* ---------------- audio helpers ---------------- */
-async function decodeTo22k(arrayBuffer) {
+/* ---------------- lyrics: syllables + alignment ---------------- */
+const VOW = /[aeiouyàáâäèéêëìíîïòóôöùúûü]/i;
+const DIGRAPHS = ["ng","ny","kh","sy","ch","sh","th","ph","gh","wh","ck"];
+function syllabify(word, lang) {
+  const core = word.replace(/[^\p{L}\p{N}'’-]/gu, ""); const low = core.toLowerCase(), n = low.length;
+  if (n <= 2) return [word];
+  const indo = lang === "id";
+  const v = [...low].map(c => VOW.test(c) && !(c === "y" && indo));
+  if (low[0] === "y") v[0] = false;
+  if (!indo) {
+    if (low.endsWith("e") && n >= 3 && !v[n - 2] && v.slice(0, -1).some(Boolean) && low[n - 2] !== "l") v[n - 1] = false;
+    if (low.endsWith("ed") && n > 3 && !"td".includes(low[n - 3]) && v.slice(0, -2).some(Boolean)) v[n - 2] = false;
+  }
+  const g = []; let i = 0;
+  while (i < n) { if (v[i]) { let j = i; if (indo) { if (i + 2 === n && v[i + 1] && ["ai","au","oi","ei"].includes(low.slice(i, i + 2))) j = i + 1; } else while (j + 1 < n && v[j + 1]) j++; g.push([i, j]); i = j + 1; } else i++; }
+  if (!indo && g.length >= 2 && low.endsWith("le") && n > 3 && !v[n - 3]) g[g.length - 1] = [n - 1, n - 1];
+  if (g.length <= 1) return [core || word];
+  const cuts = [];
+  for (let x = 0; x < g.length - 1; x++) {
+    const b1 = g[x][1], a2 = g[x + 1][0], cons = low.slice(b1 + 1, a2); let cut;
+    if (!indo && a2 === n - 1 && low.endsWith("le")) cut = a2 - 2;
+    else if (!cons.length) cut = a2; else if (cons.length === 1) cut = b1 + 1;
+    else if (DIGRAPHS.includes(cons.slice(-2))) cut = a2 - 2; else cut = a2 - 1;
+    cuts.push(Math.max(cut, b1 + 1));
+  }
+  const parts = []; let p = 0; cuts.forEach(c => { parts.push(core.slice(p, c)); p = c; }); parts.push(core.slice(p));
+  return parts.filter(Boolean);
+}
+const ID_WORDS = new Set("yang dan di ke aku kau kamu engkau dia kita kami mereka ini itu tak tidak ada akan untuk dengan dalam cinta hati rindu sayang ku mu nya pada bila jika saat selalu takkan tlah telah lagi juga hanya semua bersama".split(" "));
+function guessLang(words) {
+  if (!words.length) return "";
+  let id = 0; for (const w of words) if (ID_WORDS.has(w.w.toLowerCase().replace(/[^a-z]/g, ""))) id++;
+  return id / words.length > 0.12 ? "id" : "en";
+}
+function alignLyrics(words, melody, lang, tol = 0.3) {
+  const out = {}; if (!words.length || !melody.length) return out;
+  const on = melody.map(m => m[0]); const used = new Set(); let last = -1;
+  for (const w of words) {
+    const syl = syllabify(w.w, lang);
+    const lo = w.start - tol, hi = Math.max(w.end, w.start + 0.15);
+    let cand = []; for (let i = last + 1; i < on.length && on[i] < hi; i++) if (on[i] >= lo && !used.has(i)) cand.push(i);
+    if (!cand.length) { for (let i = last + 1; i < on.length; i++) if (on[i] >= w.start && !used.has(i)) { if (on[i] - w.start < 0.6) cand = [i]; break; } }
+    if (!cand.length) { if (last >= 0) out[last] = (out[last] || "").replace(/-$/, "") + "~" + w.w.replace(/\s+/g, "~"); continue; }
+    const k = syl.length;
+    if (cand.length >= k) { syl.forEach((s, j) => { out[cand[j]] = s + (j < k - 1 ? "-" : ""); used.add(cand[j]); }); last = cand[k - 1]; }
+    else { cand.forEach((ci, j) => { out[ci] = j < cand.length - 1 ? syl[j] + "-" : syl.slice(j).join(""); used.add(ci); }); last = cand[cand.length - 1]; }
+  }
+  for (const k in out) out[k] = out[k].replace(/\s+/g, "~");
+  return out;
+}
+
+/* ---------------- audio + worker orchestration ---------------- */
+async function decodeTo44k(arrayBuffer) {
   const AC = global.AudioContext || global.webkitAudioContext;
   const ac = new AC();
   const dec = await new Promise((res, rej) => { const p = ac.decodeAudioData(arrayBuffer.slice(0), res, rej); if (p && p.then) p.then(res, rej); });
   try { ac.close(); } catch (e) {}
-  const len = Math.ceil(dec.duration * SR);
   const OAC = global.OfflineAudioContext || global.webkitOfflineAudioContext;
-  const off = new OAC(1, len, SR);
+  const off = new OAC(1, Math.ceil(dec.duration * 44100), 44100);
   const src = off.createBufferSource(); src.buffer = dec; src.connect(off.destination); src.start();
-  const out = await off.startRendering();
-  return out.getChannelData(0);
+  return (await off.startRendering()).getChannelData(0).slice();
 }
-
-/* ---------------- main API ---------------- */
-let modelPromise = null;
-function getModel(url) {
-  if (!global.NotAngkaBP) throw new Error("Model AI belum dimuat");
-  if (!modelPromise) modelPromise = Promise.resolve(new global.NotAngkaBP.BasicPitch(url));
-  return modelPromise;
+let worker = null, wid = 0; const pending = new Map();
+function getWorker() {
+  if (worker) return worker;
+  worker = new Worker(new URL("vendor/ai-worker.js", global.document ? document.baseURI : location.href), { type: "module" });
+  worker.onmessage = e => {
+    const d = e.data, p = pending.get(d.id);
+    if (d.type === "probe") { const q = pending.get("probe"); if (q) { pending.delete("probe"); q.resolve(d.gpu); } return; }
+    if (!p) return;
+    if (d.type === "progress") p.progress(d.stage, d.p, d.msg);
+    else if (d.type === "info") p.info && p.info(d);
+    else if (d.type === "result") { pending.delete(d.id); p.resolve(d.data); }
+    else if (d.type === "error") { pending.delete(d.id); p.reject(new Error(d.message)); }
+  };
+  worker.onerror = e => { const err = new Error("Mesin AI gagal dimuat: " + (e.message || "periksa koneksi internet")); for (const [k, p] of pending) p.reject(err); pending.clear(); worker = null; };
+  return worker;
+}
+function probeGPU() {
+  return new Promise((resolve, reject) => {
+    try { pending.set("probe", { resolve, reject }); getWorker().postMessage({ type: "probe" }); } catch (e) { reject(e); }
+    setTimeout(() => { if (pending.has("probe")) { pending.delete("probe"); resolve({ ok: false, f16: false }); } }, 8000);
+  });
 }
 const DEFAULTS = { meter: "4/4", tempo_factor: 1, phase_shift: 0, key_override: "", chord_vocab: "simple", chord_rate: "auto",
-  quant: "auto", fill_gap: 0.5, bars_per_line: 4, melody_min_pitch: null, sustain: true };
+  quant: "auto", fill_gap: 0.5, bars_per_line: 4, melody_min_pitch: null, sustain: true, lyrics: true };
+const LANG_NAME = { id: "indonesian", en: "english" };
 
-async function analyze(pcm, opts = {}, progress = () => {}) {
-  const BP = global.NotAngkaBP;
-  const bp = await getModel(opts.modelUrl || "model/model.json");
-  const duration = pcm.length / SR;
-  progress(0.02, "Transkripsi not (AI)…");
-  const frames = [], onsets = [], contours = [];
-  await bp.evaluateModel(pcm, (f, o, c) => { frames.push(...f); onsets.push(...o); contours.push(...c); }, p => progress(0.02 + 0.78 * p, "Transkripsi not (AI)…"));
-  progress(0.82, "Analisis ketukan & chord…");
+async function analyze(pcm44, opts = {}, progress = () => {}) {
+  const id = ++wid, w = getWorker();
+  const data = await new Promise((resolve, reject) => {
+    pending.set(id, { resolve, reject, progress, info: opts.onInfo });
+    w.postMessage({ type: "run", id, mix44: pcm44, opts: {
+      separate: opts.separate || "auto", lyrics: !!opts.lyrics, lang: LANG_NAME[opts.lang] || null, whisper: opts.whisper || "base",
+      bpUrl: new URL("model/nmp.onnx", global.document ? document.baseURI : location.href).href } }, [pcm44.buffer]);
+  });
+  progress("analysis", 0.5, "Analisis ketukan & chord…");
   await new Promise(r => setTimeout(r, 0));
-  const evs = BP.noteFramesToTime(BP.addPitchBendsToNoteEvents(contours, BP.outputToNotesPoly(frames, onsets, 0.5, 0.3, 6)));
-  const notesRaw = evs.map(n => [n.startTimeSeconds, n.startTimeSeconds + n.durationSeconds, n.pitchMidi, n.amplitude]).sort((a, b) => a[0] - b[0] || a[2] - b[2]);
-  const nF = frames.length, times = new Float64Array(nF);
-  for (let f = 0; f < nF; f++) times[f] = frameTime(f);
-  const notes = extendSustain(notesRaw, frames, times);
-  // frame-level features
-  const env = new Float64Array(nF), low = new Float32Array(nF), chroma = new Float32Array(nF * 12), bass = new Float32Array(nF * 12), energy = new Float32Array(nF);
-  for (let f = 0; f < nF; f++) {
-    const fr = frames[f], on = onsets[f], pr = f ? frames[f - 1] : null;
-    let s = 0, flux = 0, lo = 0, en = 0;
-    for (let k = 0; k < 88; k++) {
-      s += on[k]; if (pr) flux += Math.max(0, fr[k] - pr[k]); en += fr[k];
-      const midi = k + 21;
-      if (midi < 55) lo += on[k];
-      if (midi >= 36 && midi < 96) chroma[f * 12 + (midi % 12)] += fr[k];
-      if (midi >= 28 && midi < 55) bass[f * 12 + (midi % 12)] += fr[k];
-    }
-    env[f] = s + 0.5 * flux; low[f] = lo; energy[f] = en;
-  }
-  const fps = 1 / FRAME_DT;
-  const bpm0 = opts.bpm_hint ? +opts.bpm_hint : estimateTempo(Array.from(env), fps, 120);
-  const beatFrames = trackBeats(Array.from(env), fps, bpm0, 120);
-  const rawBeats = beatFrames.map(f => times[f]);
-  frames.length = 0; onsets.length = 0; contours.length = 0;
-  const cache = { notes, notesRaw, times: Array.from(times), env: Array.from(env), low, chroma, bass, energy, rawBeats, duration,
-    title: opts.title || "", artist: opts.artist || "", source: opts.source || "" };
-  progress(0.95, "Menyusun not angka…");
+  const env = Array.from(data.onsetEnv), fps = data.envFps, ts = opts.timeScale || 1;
+  const envT = env.map((_, i) => i / fps);
+  const bpm0 = opts.bpm_hint ? +opts.bpm_hint * ts : estimateTempo(env, fps, 120);
+  const rawBeats = trackBeats(env, fps, bpm0, 120).map(f => f / fps);
+  const lang = opts.lang || guessLang(data.words);
+  const cache = { melNotes: data.melNotes, melNotesRaw: data.melNotesRaw, harmNotes: data.harmNotes, harmNotesRaw: data.harmNotesRaw,
+    times: data.times, chroma: data.chroma, bass: data.bass, energy: data.energy, env, envT, low: Array.from(data.lowEnv),
+    rawBeats, duration: data.duration, words: data.words, lang, useVocal: data.useVocal, separated: data.separated, ratio: data.ratio,
+    timing: data.timing, gpu: data.gpu, timeScale: ts, title: opts.title || "", artist: opts.artist || "" };
+  progress("analysis", 0.9, "Menyusun not angka…");
   const res = notate(cache, { meter: opts.meter || "4/4", ...(opts.params || {}) });
-  progress(1, "Selesai");
+  progress("analysis", 1, "Selesai");
   return { ...res, cache };
 }
 
 function notate(cache, params = {}) {
   const P = { ...DEFAULTS, ...params };
-  const notes = P.sustain ? cache.notes : cache.notesRaw;
-  const melody = extractMelody(notes, +(P.melody_min_pitch || 55));
+  const melSrc = P.sustain ? cache.melNotes : cache.melNotesRaw;
+  const harm = P.sustain ? cache.harmNotes : cache.harmNotesRaw;
+  let melody = extractMelody(melSrc, +(P.melody_min_pitch || (cache.useVocal ? 45 : 55)));
+  if (cache.useVocal) melody = smoothVocal(melody);
   const [N] = METERS[P.meter] || [4, false];
-  const { grid, bpm } = beatGrid(cache.rawBeats, cache.duration, cache.times, cache.env, +P.tempo_factor || 1);
+  const { grid, bpm } = beatGrid(cache.rawBeats, cache.duration, cache.envT, cache.env, +P.tempo_factor || 1);
   const t = cache.times;
   const chromaB = beatSync(cache.chroma, 12, t, grid, "median");
   const bassB = beatSync(cache.bass, 12, t, grid, "median");
   const energyB = beatSync(cache.energy, 1, t, grid, "mean").map(v => v[0]);
-  const lowB = beatSync(Float32Array.from(cache.low), 1, t, grid, "max").map(v => v[0]);
-  const onB = beatSync(Float32Array.from(cache.env), 1, t, grid, "max").map(v => v[0]);
-  const noteChroma = noteChromaPerBeat(accompanimentNotes(notes, melody), grid);
+  const lowB = beatSync(Float32Array.from(cache.low), 1, cache.envT, grid, "max").map(v => v[0]);
+  const onB = beatSync(Float32Array.from(cache.env), 1, cache.envT, grid, "max").map(v => v[0]);
+  const noteChroma = noteChromaPerBeat(cache.useVocal ? harm : accompanimentNotes(harm, melody), grid);
   let tonic, kmode;
   const ko = parseKey(P.key_override);
   if (ko) [tonic, kmode] = ko; else [tonic, kmode] = detectKey(chromaB, melody, energyB);
@@ -592,13 +662,17 @@ function notate(cache, params = {}) {
   let phase = downbeatPhase(labels, lowB, onB, N);
   phase = mod(phase + (+P.phase_shift || 0), N);
   labels = simplifyChords(labels, S, names, P.chord_rate, phase, N);
-  const r = buildText(melody, grid, labels, phase, P.meter, doPc, tonic, kmode, bpm,
-    { quant: P.quant, fillGap: +P.fill_gap, barsPerLine: +P.bars_per_line, title: cache.title, artist: cache.artist });
-  const meta = { title: cache.title, artist: cache.artist, mode: "browser", key: keyLabel(tonic, kmode), do: KEY_NAMES[doPc],
-    bpm: Math.round(bpm * 10) / 10, phase, n_melody_notes: melody.length, has_words: false, params: P, bars: r.bars, pickup: r.pickup };
+  const syl = (P.lyrics && cache.words && cache.words.length) ? alignLyrics(cache.words, melody, cache.lang) : null;
+  const realBpm = bpm / (cache.timeScale || 1);
+  const r = buildText(melody, grid, labels, phase, P.meter, doPc, tonic, kmode, realBpm,
+    { quant: P.quant, fillGap: +P.fill_gap, barsPerLine: +P.bars_per_line, title: cache.title, artist: cache.artist, syllables: syl,
+      quantTol: cache.useVocal ? 0.13 : 0.075 });
+  const meta = { title: cache.title, artist: cache.artist, mode: cache.useVocal ? "vocal" : "browser", key: keyLabel(tonic, kmode), do: KEY_NAMES[doPc],
+    bpm: Math.round(realBpm * 10) / 10, phase, n_melody_notes: melody.length, has_words: !!(cache.words && cache.words.length),
+    separated: cache.separated, vocal_ratio: cache.ratio, timing: cache.timing, gpu: cache.gpu, params: P, bars: r.bars, pickup: r.pickup };
   return { text: r.text, meta };
 }
 
-global.NotAngkaEngine = { analyze, notate, decodeTo22k, SR, DEFAULTS,
+global.NotAngkaEngine = { analyze, notate, decodeTo44k, probeGPU, syllabify, alignLyrics, smoothVocal, SR, DEFAULTS,
   _t: { extractMelody, estimateTempo, trackBeats, detectKey, recognizeChords, buildText, frameTime } };
 })(typeof window !== "undefined" ? window : globalThis);

@@ -1,0 +1,11 @@
+{
+  "name": "notangka-web-build",
+  "private": true,
+  "description": "Build bundel worker AI untuk docs/ (GitHub Pages)",
+  "scripts": { "build": "bash build.sh" },
+  "dependencies": {
+    "@huggingface/transformers": "4.3.2",
+    "@spotify/basic-pitch": "1.0.1"
+  },
+  "devDependencies": { "esbuild": "^0.25.0" }
+}
