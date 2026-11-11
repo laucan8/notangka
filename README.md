@@ -4,12 +4,22 @@ Aplikasi lokal (jalan di Mac kamu) yang mengubah **link YouTube** (cover piano, 
 lembar **not angka**: melodi tangan kanan (angka 1–7, titik oktaf, garis harga not) dan **chord** di atasnya untuk
 tangan kiri / gitar. Bisa **transpose**, kasih **saran capo gitar**, dan **lirik** (otomatis via Whisper atau tempel manual).
 
-## 0. Halaman online
+## 0. Langsung pakai di browser (tanpa install)
 
-**https://laucan8.github.io/notangka/** — tempel link YouTube di sana. Halaman ini terhubung otomatis ke server
-NotAngka di Mac kamu (aplikasi NotAngka di Dock, lihat bagian 2), jadi audio diproses di komputer sendiri (gratis & privat).
-Tanpa server lokal, halaman tetap bisa dipakai untuk melihat contoh, transpose, capo, lirik, putar, dan edit.
-Gunakan Chrome (izinkan akses jaringan lokal jika diminta); di Safari buka `http://127.0.0.1:8765`.
+**https://laucan8.github.io/notangka/** — semua diproses **di browser kamu** (model AI basic-pitch versi TF.js):
+
+| Input | Cara | Perangkat |
+|---|---|---|
+| **Link YouTube** | Tempel link → **Proses** → **Mulai rekam** → pilih *tab ini* + aktifkan **"Bagikan audio tab"**. Audio direkam selama video diputar (real-time), lalu dianalisis. | Chrome / Edge di laptop |
+| **File** | Pilih mp3/m4a/wav/mp4 → **Proses**. Paling cepat & akurat. | Semua |
+| **Mikrofon** | Putar lagu dari speaker lain → **Mikrofon** → rekam → **Selesai**. | HP & laptop |
+
+Browser tidak bisa mengunduh audio YouTube secara langsung (dibatasi YouTube & keamanan browser), karena itu link
+YouTube diproses dengan merekam audio tab. Hasil tersimpan di **Riwayat** (penyimpanan browser).
+Mode browser belum punya pisah vokal & lirik otomatis — lirik bisa ditempel lewat **Edit → Tempel lirik**.
+
+Aplikasi Mac di bawah ini **opsional**: bila berjalan, halaman otomatis memakainya (unduh YouTube langsung,
+pisah vokal Demucs, lirik Whisper).
 
 ## 1. Setup (sekali saja, macOS)
 

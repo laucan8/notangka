@@ -157,8 +157,10 @@ def build_text(melody, grid, labels, phase, meter, do_pc, tonic_pc, mode, bpm,
     bar_start_beat = phase + ((beat0 - phase) // N) * N
     pickup = (beat0 - bar_start_beat) >= max(1, N // 2) and N > 2
     start_beat = beat0 if pickup else bar_start_beat
-    end_beat_note = int(np.ceil(last_off / R))
-    end_beat = phase + int(np.ceil((end_beat_note - phase) / N)) * N
+    last_on_beat = events[-1][0] // R
+    end_beat = phase + ((last_on_beat - phase) // N + 1) * N   # end of the bar holding the last onset
+    if last_off > (end_beat + N / 2) * R:
+        end_beat = phase + int(np.ceil((int(np.ceil(last_off / R)) - phase) / N)) * N
     # extend last note to the end of its bar
     s, e, i = events[-1]
     events[-1] = (s, max(e, end_beat * R), i)

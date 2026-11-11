@@ -16,6 +16,7 @@ from pathlib import Path
 from fastapi import Body, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from notangka import __version__
 from notangka.pipeline import NOTATION_DEFAULTS, analyze, features_available, notate
@@ -177,6 +178,10 @@ def audio(job_id: str):
     if not f.exists():
         raise HTTPException(404)
     return FileResponse(f, media_type="audio/wav")
+
+
+# file statis UI (engine.js, vendor/, model/) — dipasang paling akhir agar /api/* tetap diutamakan
+app.mount("/", StaticFiles(directory=ROOT / "docs", html=True), name="docs")
 
 
 if __name__ == "__main__":

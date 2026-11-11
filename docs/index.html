@@ -107,6 +107,24 @@ label.field select,label.field input{font-weight:500;color:var(--text);font-size
 .notice .btn{height:30px;font-size:12.5px}
 .err{margin-top:12px;padding:11px 14px;border-radius:12px;border:1px solid #fecaca;background:var(--danger-50);color:#991b1b;font-size:13.5px;white-space:pre-wrap}
 
+/* recorder */
+.recorder{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:16px;margin-top:14px;padding:14px;border:1px solid var(--border);border-radius:14px;background:var(--surface-2)}
+.recorder.mic{grid-template-columns:1fr}
+.rec-media{border-radius:10px;overflow:hidden;background:#0f172a;aspect-ratio:16/9}
+.rec-media iframe,.rec-media > div{width:100%;height:100%;border:0;display:block}
+.rec-side{display:flex;flex-direction:column;gap:10px}
+.rec-side h4{margin:0;font-size:15px}
+.rec-side ol{margin:0;padding-left:18px;font-size:13.5px;color:var(--text-2)}
+.rec-side ol li{margin-bottom:4px}
+.meter{height:8px;background:#e2e8f0;border-radius:999px;overflow:hidden}
+.meter div{height:100%;width:0;background:linear-gradient(90deg,#22c55e,#eab308,#ef4444);transition:width .08s}
+.rec-time{font:700 26px/1 var(--ui);font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:10px}
+.rec-dot{width:12px;height:12px;border-radius:50%;background:#cbd5e1}
+.rec-dot.on{background:#ef4444;animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.35}}
+.engine-note{margin-top:10px;font-size:12.5px;color:var(--muted);display:flex;gap:6px;align-items:center}
+.btn.rec{background:#ef4444;border-color:#ef4444;color:#fff}
+.btn.rec:hover{background:#dc2626}
 /* stepper */
 .progress-card{margin-top:14px;padding:14px 16px;border:1px solid var(--border);border-radius:14px;background:var(--surface-2)}
 .ptop{display:flex;justify-content:space-between;align-items:center;font-size:13.5px;margin-bottom:8px}
@@ -239,6 +257,7 @@ kbd{font:600 11px var(--ui);border:1px solid var(--border-strong);border-bottom-
   .inspector{position:static}
   .nav{display:none}
 }
+@media (max-width:820px){.recorder{grid-template-columns:1fr}}
 @media (max-width:640px){
   :root{--fs:18px}
   body{overflow-x:hidden}
@@ -296,7 +315,7 @@ kbd{font:600 11px var(--ui);border:1px solid var(--border-strong);border-bottom-
 <section class="hero">
   <div class="container">
     <h1>Ubah video jadi <em>not angka</em></h1>
-    <p class="lead">Tempel link YouTube — dapatkan melodi angka untuk tangan kanan, chord untuk tangan kiri &amp; gitar, plus lirik. Transpose ke nada dasar mana pun, lengkap dengan saran capo.</p>
+    <p class="lead">Tempel link YouTube, pilih file, atau rekam lewat mikrofon — dapatkan melodi angka untuk tangan kanan dan chord untuk tangan kiri &amp; gitar. Transpose ke nada dasar mana pun, lengkap dengan saran capo. Semua jalan di browser.</p>
 
     <div class="input-card">
       <form class="urlbar" id="srcForm" autocomplete="off">
@@ -310,6 +329,10 @@ kbd{font:600 11px var(--ui);border:1px solid var(--border-strong);border-bottom-
           File
           <input type="file" id="file" accept="audio/*,video/*" hidden>
         </label>
+        <button class="btn" type="button" id="btnMic" title="Rekam lewat mikrofon (cocok di HP)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5"/></svg>
+          Mikrofon
+        </button>
         <button class="btn primary" id="btnProcess" type="submit">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Proses
         </button>
@@ -341,11 +364,25 @@ kbd{font:600 11px var(--ui);border:1px solid var(--border-strong);border-bottom-
         <div><div class="t">Video YouTube terdeteksi</div><div class="s" id="ytId"></div></div>
       </div>
 
-      <div class="notice" id="offlineNotice" hidden>
-        <div style="font-size:18px">⚡</div>
-        <div style="flex:1">
-          <b>Aplikasi NotAngka di Mac belum terbuka.</b> Pemrosesan audio berjalan di komputer kamu (gratis &amp; privat). Klik ikon <b>NotAngka</b> di Dock — halaman ini akan terhubung otomatis. Belum terpasang? Lihat cara memasang (sekali saja).
-          <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn sm" id="btnHowto">Cara memasang</button><button type="button" class="btn sm" id="btnRetry">Cek lagi</button></div>
+      <div class="engine-note" id="engineNote">🔒 Diproses langsung di browser kamu — tanpa server, tanpa upload.</div>
+
+      <div class="recorder" id="recorder" hidden>
+        <div class="rec-media" id="recMedia"><div id="ytPlayer"></div></div>
+        <div class="rec-side">
+          <h4 id="recTitle">Rekam audio dari video</h4>
+          <ol id="recSteps">
+            <li>Klik <b>Mulai rekam</b>.</li>
+            <li>Di jendela berbagi, pilih <b>tab ini</b> dan pastikan <b>"Bagikan audio tab"</b> aktif.</li>
+            <li>Video diputar otomatis. Tunggu sampai selesai, atau klik <b>Selesai</b> kapan saja.</li>
+          </ol>
+          <div class="rec-time"><span class="rec-dot" id="recDot"></span><span id="recTime">0:00</span></div>
+          <div class="meter"><div id="recLevel"></div></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button type="button" class="btn rec" id="recStart">● Mulai rekam</button>
+            <button type="button" class="btn primary" id="recStop" disabled>■ Selesai &amp; analisis</button>
+            <button type="button" class="btn ghost" id="recCancel">Batal</button>
+          </div>
+          <div class="hint" id="recHint" style="margin-top:0"></div>
         </div>
       </div>
 
@@ -486,14 +523,16 @@ kbd{font:600 11px var(--ui);border:1px solid var(--border-strong);border-bottom-
 <!-- modals -->
 <div class="modal-bg" id="howto" hidden>
   <div class="modal">
-    <h2>Pasang NotAngka di Mac (sekali saja)</h2>
-    <p>Setelah terpasang, NotAngka menjadi aplikasi biasa: server jalan sendiri di latar belakang setiap Mac menyala. Tidak perlu Terminal lagi.</p>
+    <h2>Cara pakai NotAngka</h2>
+    <p>Semua berjalan di browser — tidak perlu install apa pun.</p>
     <ol>
-      <li>Buka Terminal, tempel perintah ini, tekan Enter (butuh <a href="https://brew.sh" target="_blank" rel="noopener">Homebrew</a>; pertama kali ±10–20 menit):
-        <div class="cmd"><code>cd ~ &amp;&amp; (git clone https://github.com/laucan8/notangka.git || true) &amp;&amp; bash ~/notangka/mac/install.sh</code><button data-copy>Salin</button></div></li>
-      <li>Selesai. Ikon <b>NotAngka</b> muncul di Dock &amp; Launchpad — klik untuk membuka. Aplikasi juga memperbarui dirinya otomatis.</li>
-      <li>Halaman online ini juga ikut terhubung. Di Chrome, klik <b>Izinkan</b> bila diminta akses jaringan lokal.</li>
+      <li><b>Link YouTube</b> (Chrome/Edge di laptop): tempel link → <b>Proses</b> → <b>Mulai rekam</b> → pilih tab ini &amp; aktifkan <b>"Bagikan audio tab"</b>. Audio direkam selama video diputar, lalu dianalisis otomatis.</li>
+      <li><b>File</b>: pilih file audio/video (mp3, m4a, wav, mp4…) → <b>Proses</b>. Paling cepat &amp; akurat.</li>
+      <li><b>Mikrofon</b> (cocok di HP): putar lagunya dari speaker lain, klik <b>Mikrofon</b> → rekam → selesai.</li>
     </ol>
+    <p style="margin-top:4px"><b>Opsional — aplikasi Mac</b> untuk hasil lagu bervokal yang lebih akurat (pisah vokal) &amp; lirik otomatis:</p>
+    <div class="cmd"><code>cd ~ &amp;&amp; (git clone https://github.com/laucan8/notangka.git || true) &amp;&amp; bash ~/notangka/mac/install.sh</code><button data-copy>Salin</button></div>
+    <p style="margin-top:8px;font-size:12.5px">Jika aplikasi Mac berjalan, halaman ini otomatis memakainya (status kanan atas: <b>Terhubung</b>).</p>
     <div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn" data-close>Tutup</button></div>
   </div>
 </div>
@@ -713,7 +752,7 @@ function renderSuggestions(){
 function setBadges(m){
   const b=[];
   if(S.isSample) b.push(`<span class="badge p">Contoh</span>`);
-  if(m){ b.push(`<span class="badge p">Nada ${esc(m.key)}</span>`,`<span class="badge">±${Math.round(m.bpm)} BPM</span>`,`<span class="badge">${m.mode==="vocal"?"Melodi dari vokal":"Piano / instrumen"}</span>`,`<span class="badge">${m.n_melody_notes} not</span>`);
+  if(m){ b.push(`<span class="badge p">Nada ${esc(m.key)}</span>`,`<span class="badge">±${Math.round(m.bpm)} BPM</span>`,`<span class="badge">${m.mode==="browser"?"Diproses di browser":m.mode==="vocal"?"Melodi dari vokal":"Piano / instrumen"}</span>`,`<span class="badge">${m.n_melody_notes} not</span>`);
     if(m.warning) b.push(`<span class="badge w" title="${esc(m.warning)}">⚠ peringatan</span>`);}
   $("badges").innerHTML=b.join("");
 }
@@ -857,7 +896,7 @@ function setText(t,{fromEditor=false}={}){
   render();
   if(!S.jobId) store("notangka_text",t);
 }
-function loadSample(key){S.jobId=null;S.meta=null;S.isSample=true;S.origDo=-1;setText(SAMPLES[key]);setBadges(null);$("fixPanel").hidden=true;$("mediaPanel").hidden=true;$("lnkMidi").hidden=true;$("btnSave").hidden=true;}
+function loadSample(key){S.jobId=null;S.local=null;S.localId=null;S.meta=null;S.isSample=true;S.origDo=-1;setText(SAMPLES[key]);setBadges(null);$("fixPanel").hidden=true;$("mediaPanel").hidden=true;$("lnkMidi").hidden=true;$("btnSave").hidden=true;}
 
 /* ================= server connection ================= */
 const IS_LOCAL_HOST=/^(127\.0\.0\.1|localhost)$/.test(location.hostname)&&location.protocol.startsWith("http");
@@ -872,10 +911,14 @@ async function api(path,opt){
 }
 function setConn(state){
   const c=$("conn"),t=$("connText");
-  c.className="chip"+(state==="ok"?" ok":state==="off"?" warn":"");
-  t.textContent=state==="ok"?"Terhubung ke server lokal":state==="off"?"Server lokal tidak aktif":"Memeriksa server…";
-  c.title=t.textContent;
-  $("offlineNotice").hidden=state!=="off";
+  c.className="chip"+(state==="ok"?" ok":"");
+  t.textContent=state==="ok"?"Aplikasi Mac terhubung":state==="off"?"Mode browser":"Memeriksa…";
+  c.title=state==="ok"?"Diproses oleh aplikasi NotAngka di Mac (pisah vokal & lirik otomatis tersedia)":"Diproses langsung di browser — tanpa server";
+  $("engineNote").textContent=state==="ok"?"⚡ Diproses oleh aplikasi NotAngka di Mac kamu — link YouTube langsung diunduh, pisah vokal & lirik otomatis tersedia.":"🔒 Diproses langsung di browser kamu — tanpa server, tanpa upload.";
+  if(state!=="ok"){
+    $("optSeparate").checked=false;$("optSeparate").disabled=true;$("optLyrics").checked=false;$("optLyrics").disabled=true;
+    $("optLyrics").parentElement.title="Lirik otomatis butuh aplikasi Mac (opsional). Di browser: tempel lirik lewat Edit.";
+  }
 }
 async function probe(base){
   const ctl=new AbortController();const to=setTimeout(()=>ctl.abort(),2500);
@@ -898,8 +941,8 @@ async function checkServer(silent){
     if(!was){loadHistory(); if(!silent) toast("Terhubung ke server lokal");}
     clearTimeout(pollT);pollT=setTimeout(()=>checkServer(true),15000);
   }catch(e){
-    S.backend=false;setConn("off");$("histPanel").hidden=true;
-    clearTimeout(pollT);if(!FRAMED)pollT=setTimeout(()=>checkServer(true),5000);
+    S.backend=false;setConn("off");renderLocalHist();
+    clearTimeout(pollT);if(!FRAMED)pollT=setTimeout(()=>checkServer(true),20000);
   }
 }
 async function loadHistory(){
@@ -941,11 +984,16 @@ async function submit(ev){
   const url=$("url").value.trim(),file=$("file").files[0];
   if(!url&&!file){toast("Tempel link YouTube atau pilih file dulu");$("url").focus();return;}
   if(url&&!/^https?:\/\//i.test(url)){toast("Link harus diawali https://");return;}
-  if(!S.backend){await checkServer(true);}
-  if(!S.backend){openModal("howto");return;}
+  if(S.backend) return submitServer(url,file,file&&file.name);
+  if(file&&!url) return runLocalFromBlob(file,{title:file.name.replace(/\.[^.]+$/,""),source:"file"});
+  const id=ytId(url);
+  if(!id){toast("Link YouTube tidak dikenali");return;}
+  openRecorder("yt",id,url);
+}
+async function submitServer(url,file,fileName){
   const opts={mode:S.mode,separate:$("optSeparate").checked,lyrics:$("optLyrics").checked,lyrics_lang:$("optLang").value,
     whisper_model:$("optWhisper").value,bpm_hint:+$("optBpm").value||null,cookies_browser:$("optCookies").value};
-  const fd=new FormData();fd.append("url",url);if(file&&!url)fd.append("file",file);
+  const fd=new FormData();fd.append("url",url||"");if(file&&!url)fd.append("file",file,fileName||"rekaman.webm");
   fd.append("options",JSON.stringify(opts));fd.append("params",JSON.stringify({meter:$("optMeter").value}));
   setupSteps(opts);updateSteps("Mengambil");
   $("progress").hidden=false;$("pfill").style.width="2%";$("pmsg").textContent="Mengirim ke server lokal…";
@@ -954,7 +1002,7 @@ async function submit(ev){
   try{const {id}=await api("/api/jobs",{method:"POST",body:fd});poll(id);}
   catch(e){fail(e.message);}
 }
-function fail(msg){clearInterval(timerT);$("btnProcess").disabled=false;$("progress").hidden=true;$("err").hidden=false;$("err").textContent="Gagal: "+msg;}
+function fail(msg){clearInterval(timerT);$("btnProcess").disabled=false;$("btnMic").disabled=false;$("progress").hidden=true;$("err").hidden=false;$("err").textContent="Gagal: "+msg;}
 async function poll(id){
   try{
     const s=await api("/api/jobs/"+encodeURIComponent(id));
@@ -973,29 +1021,203 @@ function showJob(id,s){
   const m=s.meta||{};
   setBadges(m);
   if(s.edited) $("badges").insertAdjacentHTML("beforeend",'<span class="badge">versi editan</span>');
-  $("fixPanel").hidden=false;$("btnSave").hidden=false;
+  $("fixPanel").hidden=false;$("btnSave").hidden=false;S.local=null;
+  fillFix(m);
+  $("lnkMidi").hidden=false;$("lnkMidi").href=apiURL(`/api/jobs/${encodeURIComponent(id)}/midi`);
+  const media=$("media");media.innerHTML="";$("mediaPanel").hidden=false;
+  if(m.youtube_id){media.appendChild(ytEmbed(m.youtube_id));}
+  else{const a=document.createElement("audio");a.controls=true;a.src=apiURL(`/api/jobs/${encodeURIComponent(id)}/audio`);media.appendChild(a);}
+  document.getElementById("studio").scrollIntoView({behavior:"smooth",block:"start"});
+}
+function ytEmbed(id){const f=document.createElement("iframe");f.src=`https://www.youtube.com/embed/${encodeURIComponent(id)}`;f.allow="encrypted-media; picture-in-picture";f.allowFullscreen=true;return f;}
+function fillFix(m){
   const P=m.params||{};
   $("pMeter").value=P.meter||"4/4";$("pTempo").value=String(P.tempo_factor??1);$("pPhase").value=String(P.phase_shift??0);
   $("pKey").value=P.key_override||"";$("pVocab").value=P.chord_vocab||"simple";$("pRate").value=P.chord_rate||"auto";
   $("pQuant").value=P.quant||"auto";$("pFill").value=String(P.fill_gap??0.5);$("pBpl").value=String(P.bars_per_line||4);
   $("pMin").value=P.melody_min_pitch?String(P.melody_min_pitch):"";$("pSustain").checked=P.sustain!==false;$("pLyrics").checked=P.lyrics!==false;
   $("pLyrics").disabled=!m.has_words;
-  $("lnkMidi").hidden=false;$("lnkMidi").href=apiURL(`/api/jobs/${encodeURIComponent(id)}/midi`);
-  const media=$("media");media.innerHTML="";$("mediaPanel").hidden=false;
-  if(m.youtube_id){const f=document.createElement("iframe");f.src=`https://www.youtube.com/embed/${encodeURIComponent(m.youtube_id)}`;f.allow="encrypted-media; picture-in-picture";f.allowFullscreen=true;media.appendChild(f);}
-  else{const a=document.createElement("audio");a.controls=true;a.src=apiURL(`/api/jobs/${encodeURIComponent(id)}/audio`);media.appendChild(a);}
-  document.getElementById("studio").scrollIntoView({behavior:"smooth",block:"start"});
 }
 async function renotate(){
-  if(!S.jobId) return;
+  if(!S.jobId&&!S.local) return;
   const P={meter:$("pMeter").value,tempo_factor:+$("pTempo").value,phase_shift:+$("pPhase").value,key_override:$("pKey").value,
     chord_vocab:$("pVocab").value,chord_rate:$("pRate").value,quant:$("pQuant").value,fill_gap:+$("pFill").value,
     bars_per_line:+$("pBpl").value,melody_min_pitch:$("pMin").value?+$("pMin").value:null,sustain:$("pSustain").checked,lyrics:$("pLyrics").checked};
   $("btnRenotate").disabled=true;
+  if(S.local){
+    try{const r=NotAngkaEngine.notate(S.local.cache,P);S.origDo=-1;S.meta=r.meta;setText(r.text);setBadges(r.meta);updateLocalHist(r.text,r.meta);toast("Koreksi diterapkan");}
+    catch(e){toast("Gagal: "+e.message);}
+    $("btnRenotate").disabled=false;return;
+  }
   try{const r=await api(`/api/jobs/${encodeURIComponent(S.jobId)}/renotate`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(P)});
     S.origDo=-1;S.meta=r.meta;setText(r.text);setBadges(r.meta);toast("Koreksi diterapkan");}
   catch(e){toast("Gagal: "+e.message);}
   $("btnRenotate").disabled=false;
+}
+
+/* ================= browser engine (tanpa server) ================= */
+const fmt=s=>`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,"0")}`;
+function loadScript(src){return new Promise((res,rej)=>{const el=document.createElement("script");el.src=src;el.async=true;el.onload=res;el.onerror=()=>rej(new Error("Gagal memuat "+src));document.head.appendChild(el);});}
+let enginePromise=null;
+function loadEngine(){
+  if(!enginePromise) enginePromise=(async()=>{if(!window.NotAngkaBP)await loadScript("vendor/basic-pitch.js");if(!window.NotAngkaEngine)await loadScript("engine.js");})().catch(e=>{enginePromise=null;throw e;});
+  return enginePromise;
+}
+const LOCAL_STEPS=[
+  {k:"load",label:"Siapkan audio",re:/Memuat|Menyiapkan/i},
+  {k:"ai",label:"Transkripsi not (AI)",re:/Transkripsi/i},
+  {k:"ana",label:"Ketukan & chord",re:/Analisis/i},
+  {k:"not",label:"Susun not angka",re:/Menyusun|Selesai/i},
+];
+function startProgress(steps){
+  activeSteps=steps;$("steps").innerHTML=steps.map(s=>`<li data-k="${s.k}"><i></i>${s.label}</li>`).join("");
+  $("progress").hidden=false;$("pfill").style.width="1%";$("btnProcess").disabled=true;$("btnMic").disabled=true;
+  startT=Date.now();clearInterval(timerT);timerT=setInterval(()=>{$("ptime").textContent=fmt((Date.now()-startT)/1000);},500);
+}
+function setProgress(p,m){$("pfill").style.width=Math.max(1,Math.round(p*100))+"%";$("pmsg").textContent=m;updateSteps(m,p>=1);}
+async function runLocalFromBlob(blob,info){
+  $("err").hidden=true;stop();
+  startProgress(LOCAL_STEPS);
+  try{
+    setProgress(0.01,"Memuat mesin AI…");await loadEngine();
+    setProgress(0.02,"Menyiapkan audio…");
+    let pcm;
+    try{pcm=await NotAngkaEngine.decodeTo22k(await blob.arrayBuffer());}
+    catch(e){throw new Error("Format audio tidak bisa dibaca browser ini. Coba file mp3/m4a/wav.");}
+    if(pcm.length<NotAngkaEngine.SR*3) throw new Error("Audio terlalu pendek (minimal 3 detik).");
+    const res=await NotAngkaEngine.analyze(pcm,{meter:$("optMeter").value,bpm_hint:+$("optBpm").value||null,title:info.title||"Tanpa judul",artist:info.artist||"",
+      modelUrl:"model/model.json",params:{melody_min_pitch:S.mode==="vocal"?50:null}},(p,m)=>setProgress(0.03+0.97*p,m));
+    clearInterval(timerT);setProgress(1,"Selesai");$("btnProcess").disabled=false;$("btnMic").disabled=false;
+    setTimeout(()=>{$("progress").hidden=true;},900);
+    showLocal(res,info,blob);toast("Not angka siap ✓");
+  }catch(e){fail(e.message||String(e));}
+}
+function showLocal(res,info,blob){
+  stop();
+  S.jobId=null;S.local={cache:res.cache,info};S.meta=res.meta;S.isSample=false;S.origDo=-1;
+  setText(res.text);setBadges(res.meta);
+  $("fixPanel").hidden=false;$("btnSave").hidden=false;$("lnkMidi").hidden=true;
+  fillFix(res.meta);
+  const media=$("media");media.innerHTML="";$("mediaPanel").hidden=false;
+  if(info.ytId) media.appendChild(ytEmbed(info.ytId));
+  else if(blob){const a=document.createElement("audio");a.controls=true;a.src=URL.createObjectURL(blob);media.appendChild(a);}
+  S.localId=String(Date.now());
+  addLocalHist({id:S.localId,title:res.meta.title||"Tanpa judul",key:res.meta.key,text:res.text,yt:info.ytId||null,ts:Date.now()});
+  document.getElementById("studio").scrollIntoView({behavior:"smooth",block:"start"});
+}
+/* local history (localStorage) */
+const HKEY="notangka_hist";
+function getHist(){try{return JSON.parse(localStorage.getItem(HKEY)||"[]")}catch(e){return[]}}
+function putHist(h){try{localStorage.setItem(HKEY,JSON.stringify(h.slice(0,15)))}catch(e){}}
+function addLocalHist(x){const h=getHist().filter(y=>y.id!==x.id);h.unshift(x);putHist(h);renderLocalHist();}
+function updateLocalHist(text,meta){if(!S.localId)return;const h=getHist();const it=h.find(y=>y.id===S.localId);if(it){it.text=text;if(meta)it.key=meta.key;putHist(h);renderLocalHist();}}
+function renderLocalHist(){
+  if(S.backend) return;
+  const h=getHist();$("histPanel").hidden=false;
+  $("hist").innerHTML=h.length?h.map(x=>`<button data-lid="${esc(x.id)}"><span>${esc(x.title)}</span><em>${esc(x.key||"")}</em></button>`).join(""):'<div class="empty">Belum ada lagu yang diproses.</div>';
+  $("hist").querySelectorAll("button").forEach(b=>b.onclick=()=>{const it=getHist().find(y=>y.id===b.dataset.lid);if(!it)return;stop();
+    S.jobId=null;S.local=null;S.localId=it.id;S.isSample=false;S.origDo=-1;setText(it.text);setBadges(null);$("fixPanel").hidden=true;$("btnSave").hidden=false;
+    const media=$("media");media.innerHTML="";$("mediaPanel").hidden=!it.yt;if(it.yt)media.appendChild(ytEmbed(it.yt));
+    document.getElementById("studio").scrollIntoView({behavior:"smooth",block:"start"});});
+}
+
+/* ================= recorder: tab YouTube / mikrofon ================= */
+const R={mode:null,stream:null,rec:null,chunks:[],ac:null,raf:null,t0:0,timer:null,player:null,ytId:null,otherTab:false,title:"",artist:""};
+let ytApiPromise=null;
+function loadYT(){
+  if(window.YT&&window.YT.Player) return Promise.resolve();
+  if(!ytApiPromise) ytApiPromise=new Promise((res,rej)=>{const prev=window.onYouTubeIframeAPIReady;window.onYouTubeIframeAPIReady=()=>{if(prev)try{prev()}catch(e){}res();};
+    loadScript("https://www.youtube.com/iframe_api").catch(rej);setTimeout(()=>rej(new Error("Player YouTube tidak bisa dimuat")),15000);}).catch(e=>{ytApiPromise=null;throw e;});
+  return ytApiPromise;
+}
+function resetRecorder(){
+  if(R.rec){try{R.rec.onstop=null;R.rec.stop()}catch(e){}R.rec=null;}
+  stopStreams();
+  if(R.player&&R.player.destroy){try{R.player.destroy()}catch(e){}}
+  R.player=null;R.otherTab=false;R.title="";R.artist="";
+  $("recTime").textContent="0:00";$("recHint").textContent="";$("recStart").disabled=false;$("recStop").disabled=true;
+}
+async function openRecorder(mode,id){
+  resetRecorder();R.mode=mode;R.ytId=id||null;
+  const box=$("recorder");box.hidden=false;box.classList.toggle("mic",mode==="mic");$("recMedia").hidden=mode==="mic";
+  if(mode==="mic"){
+    $("recTitle").textContent="Rekam lewat mikrofon";
+    $("recSteps").innerHTML="<li>Siapkan lagunya di speaker/perangkat lain, dekatkan ke mikrofon.</li><li>Klik <b>Mulai rekam</b> dan izinkan mikrofon.</li><li>Klik <b>Selesai</b> setelah lagu (atau bagian yang diinginkan) selesai.</li>";
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){$("recHint").textContent="Browser ini tidak mendukung rekam mikrofon.";$("recStart").disabled=true;}
+  }else{
+    $("recTitle").textContent="Rekam audio dari video";
+    $("recSteps").innerHTML='<li>Klik <b>Mulai rekam</b>.</li><li>Di jendela berbagi, pilih <b>tab ini</b> dan pastikan <b>"Bagikan audio tab"</b> aktif.</li><li>Video diputar otomatis. Tunggu sampai selesai, atau klik <b>Selesai</b> kapan saja.</li>';
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getDisplayMedia){
+      $("recHint").innerHTML="Browser ini tidak bisa merekam audio tab (umumnya di HP/Safari). Gunakan <b>Mikrofon</b> atau pilih <b>File</b>, atau buka di Chrome laptop.";$("recStart").disabled=true;
+    }
+    $("recMedia").innerHTML='<div id="ytPlayer"></div>';
+    try{
+      await loadYT();
+      R.player=new YT.Player("ytPlayer",{videoId:id,playerVars:{playsinline:1,rel:0},events:{
+        onReady:()=>{try{const d=R.player.getVideoData();R.title=d.title||"";R.artist=d.author||"";if(R.title)$("recTitle").textContent=R.title;}catch(e){}},
+        onStateChange:e=>{if(e.data===0&&R.rec)finishRecording();},
+        onError:e=>{if([2,5,100,101,150].includes(e.data)){R.otherTab=true;$("recHint").innerHTML='Video ini tidak bisa diputar di halaman lain. Buka video di <b>tab YouTube</b>, klik <b>Mulai rekam</b> di sini, pilih <b>tab YouTube</b> itu (aktifkan audio tab), lalu putar videonya. Klik <b>Selesai</b> setelah selesai.';}}
+      }});
+    }catch(e){R.otherTab=true;$("recHint").textContent=e.message+" — buka video di tab lain, lalu rekam tab tersebut.";}
+  }
+  box.scrollIntoView({behavior:"smooth",block:"center"});
+}
+async function startRecording(){
+  $("err").hidden=true;
+  try{
+    let stream;
+    if(R.mode==="mic") stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+    else{
+      const o={video:true,audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,suppressLocalAudioPlayback:false},systemAudio:"include",selfBrowserSurface:"include",surfaceSwitching:"exclude"};
+      if(!R.otherTab) o.preferCurrentTab=true;
+      stream=await navigator.mediaDevices.getDisplayMedia(o);
+      if(!stream.getAudioTracks().length){stream.getTracks().forEach(t=>t.stop());throw new Error('Audio tidak ikut terekam. Klik Mulai rekam lagi dan aktifkan "Bagikan audio tab" (Also share tab audio).');}
+    }
+    R.stream=stream;
+    const aStream=new MediaStream(stream.getAudioTracks());
+    const mime=["audio/webm;codecs=opus","audio/webm","audio/mp4","audio/ogg;codecs=opus"].find(m=>window.MediaRecorder&&MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(m))||"";
+    R.rec=new MediaRecorder(aStream,mime?{mimeType:mime,audioBitsPerSecond:192000}:undefined);
+    R.chunks=[];R.rec.ondataavailable=e=>{if(e.data&&e.data.size)R.chunks.push(e.data);};
+    R.rec.start(1000);
+    stream.getTracks().forEach(t=>t.addEventListener("ended",()=>{if(R.rec)finishRecording();}));
+    try{
+      R.ac=new (window.AudioContext||window.webkitAudioContext)();
+      const an=R.ac.createAnalyser();an.fftSize=1024;R.ac.createMediaStreamSource(aStream).connect(an);
+      const buf=new Float32Array(an.fftSize);
+      const loop=()=>{an.getFloatTimeDomainData(buf);let q=0;for(const v of buf)q+=v*v;$("recLevel").style.width=Math.min(100,Math.sqrt(q/buf.length)*400)+"%";R.raf=requestAnimationFrame(loop);};loop();
+    }catch(e){}
+    R.t0=Date.now();$("recDot").classList.add("on");
+    R.timer=setInterval(()=>{const sec=(Date.now()-R.t0)/1000;$("recTime").textContent=fmt(sec);if(sec>=900)finishRecording();},500);
+    $("recStart").disabled=true;$("recStop").disabled=false;
+    if(R.player&&R.player.seekTo){try{R.player.seekTo(0,true);R.player.playVideo();}catch(e){}}
+    $("recHint").textContent=R.mode==="mic"?"Merekam… klik Selesai jika sudah.":(R.otherTab?"Merekam tab yang dipilih… putar videonya, lalu klik Selesai.":"Merekam audio tab… biarkan video berjalan sampai selesai.");
+  }catch(e){
+    stopStreams();R.rec=null;
+    const n=e&&e.name;
+    $("recHint").textContent=n==="NotAllowedError"?"Izin ditolak. Klik Mulai rekam lagi dan izinkan berbagi tab/mikrofon."
+      :(n==="NotReadableError"||n==="NotSupportedError"||/audio source/i.test(e&&e.message))?"Browser ini tidak bisa merekam audio tab. Gunakan Chrome/Edge terbaru di laptop, atau pakai File / Mikrofon."
+      :(e.message||String(e));
+  }
+}
+function stopStreams(){
+  if(R.raf)cancelAnimationFrame(R.raf);clearInterval(R.timer);
+  if(R.stream)R.stream.getTracks().forEach(t=>t.stop());R.stream=null;
+  if(R.ac){try{R.ac.close()}catch(e){}R.ac=null;}
+  $("recDot").classList.remove("on");$("recLevel").style.width="0";
+}
+function finishRecording(){
+  const rec=R.rec;if(!rec)return;R.rec=null;
+  const secs=(Date.now()-R.t0)/1000;
+  try{if(R.player&&R.player.pauseVideo)R.player.pauseVideo();}catch(e){}
+  rec.onstop=()=>{
+    stopStreams();$("recStart").disabled=false;$("recStop").disabled=true;
+    const blob=new Blob(R.chunks,{type:rec.mimeType||"audio/webm"});
+    if(secs<3||!blob.size){$("recHint").textContent="Rekaman terlalu pendek (minimal 3 detik).";return;}
+    const info=R.mode==="mic"?{title:"Rekaman "+new Date().toLocaleString("id-ID"),source:"mic"}:{title:R.title||"Video YouTube",artist:R.artist||"",ytId:R.ytId,source:"youtube"};
+    $("recorder").hidden=true;
+    if(S.backend&&R.mode==="mic") submitServer("",blob,"rekaman.webm"); else runLocalFromBlob(blob,info);
+  };
+  try{rec.stop();}catch(e){rec.onstop();}
 }
 
 /* ================= modals ================= */
@@ -1005,6 +1227,10 @@ document.querySelectorAll("[data-copy]").forEach(b=>b.onclick=async()=>{const t=
 
 /* ================= wiring ================= */
 $("srcForm").addEventListener("submit",submit);
+$("btnMic").onclick=()=>{$("err").hidden=true;openRecorder("mic");};
+$("recStart").onclick=startRecording;
+$("recStop").onclick=finishRecording;
+$("recCancel").onclick=()=>{resetRecorder();$("recorder").hidden=true;};
 $("url").addEventListener("input",updatePreview);
 $("url").addEventListener("paste",()=>setTimeout(updatePreview,0));
 $("urlClear").onclick=()=>{$("url").value="";updatePreview();$("url").focus();};
@@ -1012,9 +1238,7 @@ $("file").onchange=e=>{const f=e.target.files[0];$("fileChip").hidden=!f;$("file
 $("fileClear").onclick=()=>{$("file").value="";$("fileChip").hidden=true;};
 $("segMode").querySelectorAll("button").forEach(b=>b.onclick=()=>{S.mode=b.dataset.v;$("segMode").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b));});
 $("btnMore").onclick=()=>{const h=$("moreOpts").hidden;$("moreOpts").hidden=!h;$("btnMore").textContent=h?"Opsi lanjutan ▴":"Opsi lanjutan ▾";};
-$("btnHowto").onclick=()=>openModal("howto");
 $("navGuide").onclick=e=>{e.preventDefault();openModal("howto");};
-$("btnRetry").onclick=()=>checkServer(false);
 $("btnSettings").onclick=()=>{$("apiInput").value=API||location.origin;openModal("settings");};
 $("apiSave").onclick=()=>{let v=$("apiInput").value.trim().replace(/\/$/,"");if(IS_LOCAL_HOST&&v===location.origin)v="";API=v||(IS_LOCAL_HOST?"":DEFAULT_API);store("notangka_api",v||undefined);$("settings").hidden=true;S.backend=false;checkServer(false);};
 
@@ -1034,7 +1258,7 @@ const closeMenu=()=>$("exportMenu").removeAttribute("open");
 $("btnPrint").onclick=()=>{closeMenu();if(FRAMED){toast("Cetak tidak tersedia di pratinjau ini — buka halaman aslinya");return;}const old=document.title;document.title=(S.song&&S.song.title)||"NotAngka";window.print();document.title=old;};
 $("btnTxt").onclick=()=>{closeMenu();if(FRAMED){toast("Unduh tidak tersedia di pratinjau ini — pakai Salin teks");return;}const b=new Blob([S.text],{type:"text/plain"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=((S.song&&S.song.title)||"notangka").replace(/[^\w\- ]+/g,"_")+".txt";a.click();};
 $("btnCopy").onclick=async()=>{closeMenu();try{await navigator.clipboard.writeText(S.text);toast("Teks tersalin");}catch(e){$("editor").hidden=false;$("editorText").select();toast("Tekan Cmd+C untuk menyalin");}};
-$("btnSave").onclick=async()=>{if(!S.jobId)return;try{await api(`/api/jobs/${encodeURIComponent(S.jobId)}/save`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:S.text})});toast("Tersimpan ✓");}catch(e){toast(e.message);}};
+$("btnSave").onclick=async()=>{if(!S.jobId){if(S.localId){updateLocalHist(S.text,S.meta);toast("Tersimpan di browser ✓");}return;}try{await api(`/api/jobs/${encodeURIComponent(S.jobId)}/save`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:S.text})});toast("Tersimpan ✓");}catch(e){toast(e.message);}};
 document.querySelectorAll("[data-sample]").forEach(b=>b.onclick=()=>{stop();loadSample(b.dataset.sample);});
 document.addEventListener("click",e=>{if(!e.target.closest("#exportMenu"))closeMenu();});
 document.addEventListener("keydown",e=>{
