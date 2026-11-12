@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
+import platform
 import shutil
 import subprocess
 import sys
@@ -50,8 +52,8 @@ def download_youtube(url: str, workdir: Path, progress=None, cookies_browser: st
         msg = str(ex)
         if "not a bot" in msg or "Sign in" in msg or "429" in msg:
             raise RuntimeError(
-                "YouTube meminta verifikasi (anti-bot). Pilih 'Cookies dari browser' (mis. Chrome) di Opsi "
-                "analisis, pastikan sudah login YouTube di browser itu, lalu coba lagi. Alternatif: upload file audio.")
+                "YouTube meminta verifikasi (anti-bot). Buka Opsi lanjutan → Cookies YouTube → 'Dari Chrome' "
+                "(pastikan sudah login YouTube di Chrome), lalu Proses lagi. Alternatif: pakai file audio.")
         if "JavaScript runtime" in msg or "js-runtimes" in msg:
             raise RuntimeError("yt-dlp butuh JavaScript runtime. Install: brew install deno")
         raise RuntimeError(f"Download gagal: {msg[-400:]}")
@@ -80,21 +82,40 @@ def to_wav(src: Path, dst: Path, sr: int = 44100) -> Path:
     return dst
 
 
-def separate_vocals(wav: Path, workdir: Path, device: str = "cpu") -> tuple[Path, Path]:
-    """Split into vocals / accompaniment with Demucs (htdemucs). Returns (vocals, no_vocals)."""
+def _demucs_devices(pref: str) -> list[str]:
+    """Device order to try. 'auto' = GPU first (Apple Silicon MPS / CUDA), CPU as fallback."""
+    if pref and pref != "auto":
+        return [pref] if pref == "cpu" else [pref, "cpu"]
+    if sys.platform == "darwin" and platform.machine() == "arm64":
+        return ["mps", "cpu"]
+    try:
+        import torch
+        if torch.cuda.is_available():
+            return ["cuda", "cpu"]
+    except Exception:
+        pass
+    return ["cpu"]
+
+
+def separate_vocals(wav: Path, workdir: Path, device: str = "auto") -> tuple[Path, Path]:
+    """Split into vocals / accompaniment with Demucs (htdemucs). Returns (vocals, no_vocals).
+
+    On Apple Silicon this runs on the GPU (MPS) — typically 3-5x faster than CPU."""
     if not has_module("demucs"):
         raise RuntimeError("Demucs belum terinstall (pip install -r requirements-extra.txt)")
     out = workdir / "stems"
-    cmd = [sys.executable, "-m", "demucs", "--two-stems", "vocals", "-n", "htdemucs",
-           "-d", device, "-o", str(out), str(wav)]
-    r = subprocess.run(cmd, capture_output=True, text=True)
-    if r.returncode != 0:
-        raise RuntimeError("Demucs gagal: " + (r.stderr or r.stdout)[-800:])
-    d = out / "htdemucs" / wav.stem
-    voc, acc = d / "vocals.wav", d / "no_vocals.wav"
-    if not voc.exists() or not acc.exists():
-        raise RuntimeError("Output Demucs tidak ditemukan")
-    return voc, acc
+    env = {**os.environ, "PYTORCH_ENABLE_MPS_FALLBACK": "1"}
+    err = ""
+    for dev in _demucs_devices(device):
+        cmd = [sys.executable, "-m", "demucs", "--two-stems", "vocals", "-n", "htdemucs",
+               "-d", dev, "-o", str(out), str(wav)]
+        r = subprocess.run(cmd, capture_output=True, text=True, env=env)
+        d = out / "htdemucs" / wav.stem
+        voc, acc = d / "vocals.wav", d / "no_vocals.wav"
+        if r.returncode == 0 and voc.exists() and acc.exists():
+            return voc, acc
+        err = (r.stderr or r.stdout)[-800:]
+    raise RuntimeError("Demucs gagal: " + err)
 
 
 def save_json(obj, path: Path):

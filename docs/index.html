@@ -246,6 +246,10 @@ details.collapse .body{margin-top:12px;display:flex;flex-direction:column;gap:10
 .modal li{margin-bottom:10px;min-width:0}
 .cmd{display:flex;align-items:center;gap:8px;background:#0f172a;color:#e2e8f0;border-radius:9px;padding:8px 8px 8px 12px;font:12.5px ui-monospace,Menlo,monospace;margin-top:6px}
 .cmd code{flex:1;min-width:0;overflow:auto;white-space:nowrap}
+.ne-box{background:var(--bg-2,#f1f5f9);border-radius:10px;padding:12px 14px;font-size:14px;color:var(--text-2)}
+.ne-status{margin:12px 0!important;font-size:13px!important}
+.ne-status.ok{color:#15803d!important;font-weight:600}
+#conn.off{cursor:pointer}
 .cmd button{border:0;background:#1e293b;color:#cbd5e1;border-radius:6px;padding:4px 8px;font-size:12px;cursor:pointer}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:#0f172a;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:all .2s;z-index:60}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -316,7 +320,7 @@ kbd{font:600 11px var(--ui);border:1px solid var(--border-strong);border-bottom-
 <section class="hero">
   <div class="container">
     <h1>Ubah video jadi <em>not angka</em></h1>
-    <p class="lead">Tempel link YouTube, pilih file, atau rekam lewat mikrofon — dapatkan melodi angka untuk tangan kanan dan chord untuk tangan kiri &amp; gitar. Transpose ke nada dasar mana pun, lengkap dengan saran capo. Semua jalan di browser.</p>
+    <p class="lead">Tempel link YouTube, pilih file, atau rekam lewat mikrofon — dapatkan melodi angka untuk tangan kanan dan chord untuk tangan kiri &amp; gitar. Transpose ke nada dasar mana pun, lengkap dengan saran capo. Link YouTube langsung diproses tanpa rekam.</p>
 
     <div class="input-card">
       <form class="urlbar" id="srcForm" autocomplete="off">
@@ -526,17 +530,39 @@ kbd{font:600 11px var(--ui);border:1px solid var(--border-strong);border-bottom-
 <div class="modal-bg" id="howto" hidden>
   <div class="modal">
     <h2>Cara pakai NotAngka</h2>
-    <p>Semua berjalan di browser — tidak perlu install apa pun.</p>
     <ol>
-      <li><b>Link YouTube</b> (Chrome/Edge di laptop): tempel link → <b>Proses</b> → <b>Mulai rekam</b> → pilih tab ini &amp; aktifkan <b>"Bagikan audio tab"</b>. Audio direkam selama video diputar, lalu dianalisis otomatis.</li>
+      <li><b>Link YouTube</b>: tempel link → <b>Proses</b>. Diunduh &amp; dianalisis langsung oleh mesin NotAngka di Mac (tanpa rekam). Belum terpasang? Halaman ini menunjukkan cara memasangnya (sekali saja).</li>
       <li><b>File</b>: pilih file audio/video (mp3, m4a, wav, mp4…) → <b>Proses</b>. Paling cepat &amp; akurat.</li>
       <li><b>Mikrofon</b> (cocok di HP): putar lagunya dari speaker lain, klik <b>Mikrofon</b> → rekam → selesai.</li>
     </ol>
-    <p style="margin-top:4px">Pisah vokal &amp; lirik otomatis berjalan di browser memakai GPU (WebGPU, mis. Chrome di Mac M1). Model AI diunduh sekali (±180 MB) lalu tersimpan di browser.</p>
-    <p style="margin-top:4px"><b>Opsional — aplikasi Mac</b>: unduh link YouTube langsung tanpa perlu merekam tab:</p>
-    <div class="cmd"><code>cd ~ &amp;&amp; (git clone https://github.com/laucan8/notangka.git || true) &amp;&amp; bash ~/notangka/mac/install.sh</code><button data-copy>Salin</button></div>
-    <p style="margin-top:8px;font-size:12.5px">Jika aplikasi Mac berjalan, halaman ini otomatis memakainya (status kanan atas: <b>Terhubung</b>).</p>
+    <p style="margin-top:4px">Status kanan atas <b>Mesin Mac terhubung</b> = link YouTube diproses tanpa rekam dengan kualitas terbaik.</p>
+    <p style="margin-top:4px">Tanpa mesin Mac (mis. di HP), File &amp; Mikrofon tetap jalan langsung di browser, dan link YouTube bisa direkam dari tab.</p>
     <div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn" data-close>Tutup</button></div>
+  </div>
+</div>
+<div class="modal-bg" id="needEngine" hidden>
+  <div class="modal">
+    <h2>Link YouTube langsung jadi — tanpa rekam</h2>
+    <p>Browser tidak diizinkan mengunduh audio dari YouTube, jadi link YouTube diproses oleh <b>mesin NotAngka di Mac</b>: audio langsung diunduh, vokal dipisah (Demucs) dan lirik dibaca (Whisper) — kualitas terbaik, tanpa proses rekam.</p>
+    <div id="neMac">
+      <div class="ne-box">
+        <b>Sekali saja (±1 menit):</b>
+        <ol style="margin:6px 0 4px"><li>Buka <b>Finder</b> → folder <b>notangka</b> (di folder rumah kamu).</li>
+        <li>Klik dua kali <b>Pasang NotAngka</b>, tunggu sampai muncul <b>"Selesai"</b>.</li></ol>
+        <div style="font-size:12.5px;color:var(--muted)">Setelah itu mesin jalan sendiri setiap Mac menyala — tidak perlu Terminal lagi. Jika Chrome menanyakan izin akses ke aplikasi di perangkat ini, pilih <b>Izinkan</b>.</div>
+      </div>
+      <details style="margin:10px 0 0;font-size:13px"><summary style="cursor:pointer;color:var(--muted)">Tidak ada folder notangka / Mac lain?</summary>
+        <div class="cmd"><code>cd ~ &amp;&amp; (git clone https://github.com/laucan8/notangka.git 2&gt;/dev/null || git -C notangka pull --ff-only) &amp;&amp; bash ~/notangka/mac/install.sh</code><button data-copy>Salin</button></div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">Tempel di aplikasi Terminal lalu Enter. Pertama kali ±10–20 menit (unduh paket).</div>
+      </details>
+    </div>
+    <div id="neOther" hidden><div class="ne-box">Mesin NotAngka hanya tersedia untuk Mac. Di perangkat ini pilih <b>Rekam dari YouTube</b> (Chrome/Edge di laptop) atau pakai <b>File</b> / <b>Mikrofon</b>.</div></div>
+    <p id="neStatus" class="ne-status">Mencari mesin NotAngka di Mac…</p>
+    <div style="display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px">
+      <button class="btn ghost" id="neRecord">Rekam dari YouTube</button>
+      <button class="btn" id="neFile">Pakai file audio</button>
+      <button class="btn primary" id="neRetry">Cek lagi</button>
+    </div>
   </div>
 </div>
 <div class="modal-bg" id="settings" hidden>
@@ -906,6 +932,7 @@ function loadSample(key){S.jobId=null;S.local=null;S.localId=null;S.meta=null;S.
 /* ================= server connection ================= */
 const IS_LOCAL_HOST=/^(127\.0\.0\.1|localhost)$/.test(location.hostname)&&location.protocol.startsWith("http");
 const DEFAULT_API="http://127.0.0.1:8765";
+const IS_MAC=/Macintosh|Mac OS X/.test(navigator.userAgent)&&!(navigator.maxTouchPoints>1);
 let API=load("notangka_api")||(IS_LOCAL_HOST?"":DEFAULT_API);
 let pollT=null;
 function apiURL(p){return API.replace(/\/$/,"")+p;}
@@ -916,21 +943,29 @@ async function api(path,opt){
 }
 function setConn(state){
   const c=$("conn"),t=$("connText");
-  c.className="chip"+(state==="ok"?" ok":"");
-  t.textContent=state==="ok"?"Aplikasi Mac terhubung":state==="off"?"Mode browser":"Memeriksa…";
-  c.title=state==="ok"?"Diproses oleh aplikasi NotAngka di Mac (pisah vokal & lirik otomatis tersedia)":"Diproses langsung di browser — tanpa server";
+  c.className="chip"+(state==="ok"?" ok":state==="off"?" off":"");
+  t.textContent=state==="ok"?"Mesin Mac terhubung":state==="off"?(IS_MAC?"Mesin Mac belum aktif":"Mode browser"):"Memeriksa…";
+  c.title=state==="ok"?"Link YouTube diunduh & dianalisis langsung oleh mesin NotAngka di Mac — tanpa rekam":IS_MAC?"Klik untuk cara mengaktifkan mesin Mac (sekali saja)":"Diproses langsung di browser";
+  if(state==="ok"&&!S.whisperTouched) $("optWhisper").value="small";
   $("engineNote").textContent=state==="ok"?"⚡ Diproses oleh aplikasi NotAngka di Mac kamu — link YouTube langsung diunduh, pisah vokal & lirik otomatis tersedia.":"🔒 Diproses langsung di browser kamu — tanpa server, tanpa upload.";
   document.body.classList.toggle("browser-mode",state!=="ok");
   $("optLyrics").disabled=false;$("optLyrics").parentElement.title="";
   if(state!=="ok") updateGpuNote();
 }
 async function probe(base){
-  const ctl=new AbortController();const to=setTimeout(()=>ctl.abort(),2500);
+  // timeout panjang: Chrome bisa menampilkan izin "akses aplikasi di perangkat ini" (Local Network Access);
+  // kalau mesin mati, koneksi langsung ditolak sehingga tidak menunggu.
+  const ctl=new AbortController();const to=setTimeout(()=>ctl.abort(),12000);
   try{const r=await fetch(base.replace(/\/$/,"")+"/api/health",{signal:ctl.signal,cache:"no-store"});
     if(!r.ok) return null; const h=await r.json(); return h&&h.ok?h:null;}
   catch(e){return null}finally{clearTimeout(to);}
 }
-async function checkServer(silent){
+let checking=null;
+function checkServer(silent){
+  if(!checking) checking=_checkServer(silent).finally(()=>{checking=null;});
+  return checking;
+}
+async function _checkServer(silent){
   try{
     const stored=load("notangka_api");
     const cands=stored?[stored]:(IS_LOCAL_HOST?["",DEFAULT_API]:[DEFAULT_API]);
@@ -944,9 +979,11 @@ async function checkServer(silent){
     $("histPanel").hidden=false;
     if(!was){loadHistory(); if(!silent) toast("Terhubung ke server lokal");}
     clearTimeout(pollT);pollT=setTimeout(()=>checkServer(true),15000);
+    return true;
   }catch(e){
     S.backend=false;setConn("off");renderLocalHist();
     clearTimeout(pollT);if(!FRAMED)pollT=setTimeout(()=>checkServer(true),20000);
+    return false;
   }
 }
 async function loadHistory(){
@@ -988,11 +1025,32 @@ async function submit(ev){
   const url=$("url").value.trim(),file=$("file").files[0];
   if(!url&&!file){toast("Tempel link YouTube atau pilih file dulu");$("url").focus();return;}
   if(url&&!/^https?:\/\//i.test(url)){toast("Link harus diawali https://");return;}
+  if(!S.backend&&url) await checkServer(true);
   if(S.backend) return submitServer(url,file,file&&file.name);
   if(file&&!url) return runLocalFromBlob(file,{title:file.name.replace(/\.[^.]+$/,""),source:"file"});
   const id=ytId(url);
   if(!id){toast("Link YouTube tidak dikenali");return;}
-  openRecorder("yt",id,url);
+  openNeedEngine(id,url);
+}
+/* link YouTube tanpa mesin Mac: jangan langsung rekam — tawarkan mesin Mac dulu, lanjut otomatis begitu aktif */
+let NE=null,neT=null;
+function openNeedEngine(id,url){
+  NE={id,url};$("neRecord").hidden=false;$("neMac").hidden=!IS_MAC;$("neOther").hidden=IS_MAC;$("neRetry").hidden=!IS_MAC;
+  $("neStatus").className="ne-status";openModal("needEngine");if(IS_MAC)neTick();else $("neStatus").textContent="";
+}
+async function neTick(){
+  clearTimeout(neT);
+  if($("needEngine").hidden||!NE) return;
+  $("neStatus").className="ne-status";$("neStatus").textContent="Mencari mesin NotAngka di Mac…";
+  const ok=await checkServer(true);
+  if($("needEngine").hidden||!NE) return;
+  if(ok){
+    $("neStatus").className="ne-status ok";$("neStatus").textContent="✓ Mesin Mac terhubung — memproses…";
+    const n=NE;NE=null;setTimeout(()=>{$("needEngine").hidden=true;},600);
+    submitServer(n.url,null,null);return;
+  }
+  $("neStatus").textContent="Mesin belum aktif. Halaman ini otomatis lanjut begitu mesin menyala.";
+  neT=setTimeout(neTick,3000);
 }
 async function submitServer(url,file,fileName){
   const opts={mode:S.mode,separate:$("optSeparate").checked,lyrics:$("optLyrics").checked,lyrics_lang:$("optLang").value,
@@ -1065,9 +1123,10 @@ async function updateGpuNote(){
   if(S.backend) return;
   if(!GPU){ try{ await loadEngine(); GPU=await NotAngkaEngine.probeGPU(); }catch(e){ GPU={ok:false}; } }
   if(S.backend) return;
-  $("engineNote").innerHTML=GPU.ok
-    ?"⚡ Diproses di browser dengan <b>GPU (WebGPU)</b> — pisah vokal &amp; lirik otomatis tersedia. Tanpa server, tanpa upload."
-    :"🔒 Diproses di browser (tanpa server). Perangkat ini <b>tanpa WebGPU</b>: pisah vokal &amp; lirik akan sangat lambat — untuk itu gunakan Chrome terbaru di laptop.";
+  const yt=IS_MAC?" Link YouTube tanpa rekam butuh <b>mesin Mac</b> — klik status kanan atas untuk memasang (sekali saja).":"";
+  $("engineNote").innerHTML=(GPU.ok
+    ?"⚡ File &amp; mikrofon diproses di browser dengan <b>GPU</b>."
+    :"🔒 File &amp; mikrofon diproses di browser (perangkat ini tanpa WebGPU: pisah vokal &amp; lirik lambat).")+yt;
 }
 const fmt=s=>`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,"0")}`;
 function loadScript(src){return new Promise((res,rej)=>{const el=document.createElement("script");el.src=src;el.async=true;el.onload=res;el.onerror=()=>rej(new Error("Gagal memuat "+src));document.head.appendChild(el);});}
@@ -1266,6 +1325,11 @@ document.querySelectorAll("[data-copy]").forEach(b=>b.onclick=async()=>{const t=
 /* ================= wiring ================= */
 $("srcForm").addEventListener("submit",submit);
 $("btnMic").onclick=()=>{$("err").hidden=true;openRecorder("mic");};
+$("neRecord").onclick=()=>{const n=NE;NE=null;$("needEngine").hidden=true;if(n)openRecorder("yt",n.id,n.url);};
+$("neFile").onclick=()=>{NE=null;$("needEngine").hidden=true;$("file").click();};
+$("neRetry").onclick=()=>neTick();
+$("conn").onclick=()=>{if(S.backend||!IS_MAC)return;NE=null;$("neRecord").hidden=true;$("neMac").hidden=false;$("neOther").hidden=true;$("neRetry").hidden=true;$("neStatus").className="ne-status";$("neStatus").textContent="Setelah dipasang, status kanan atas berubah jadi \u201cMesin Mac terhubung\u201d.";openModal("needEngine");};
+$("optWhisper").addEventListener("change",()=>{S.whisperTouched=true;});
 $("recStart").onclick=startRecording;
 $("recStop").onclick=finishRecording;
 $("recCancel").onclick=()=>{resetRecorder();$("recorder").hidden=true;};

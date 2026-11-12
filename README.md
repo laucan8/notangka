@@ -4,10 +4,18 @@ Aplikasi lokal (jalan di Mac kamu) yang mengubah **link YouTube** (cover piano, 
 lembar **not angka**: melodi tangan kanan (angka 1–7, titik oktaf, garis harga not) dan **chord** di atasnya untuk
 tangan kiri / gitar. Bisa **transpose**, kasih **saran capo gitar**, dan **lirik** (otomatis via Whisper atau tempel manual).
 
-## 0. Langsung pakai di browser (tanpa install)
+## 0. Pakai
 
-**https://laucan8.github.io/notangka/** — semua AI berjalan **di browser kamu** (ONNX Runtime Web; memakai **GPU via WebGPU**
-bila tersedia, mis. Chrome di Mac M1):
+**https://laucan8.github.io/notangka/** (atau ikon **NotAngka** di Dock setelah dipasang).
+
+**Link YouTube → langsung jadi, tanpa rekam** — diproses oleh *mesin NotAngka di Mac* (yt-dlp + Demucs + basic-pitch +
+faster-whisper; kualitas terbaik, Demucs memakai GPU Apple/MPS). Pasang **sekali**: Finder → folder `notangka` → klik dua
+kali **Pasang NotAngka** (atau `bash ~/notangka/mac/install.sh`). Setelah itu mesin jalan sendiri setiap Mac menyala, dan
+halaman di atas otomatis memakainya (status kanan atas: **Mesin Mac terhubung**). Kalau mesin belum aktif, halaman
+menampilkan cara memasangnya dan otomatis lanjut begitu mesin menyala — tidak lagi langsung masuk ke mode rekam.
+
+**Tanpa mesin Mac** (HP, laptop lain) — **File** dan **Mikrofon** dianalisis langsung di browser (ONNX Runtime Web,
+GPU via WebGPU bila ada); link YouTube hanya bisa direkam dari tab (opsi cadangan):
 
 | Tahap | Model | Unduhan pertama |
 |---|---|---|
@@ -21,17 +29,17 @@ dan lirik ditempatkan per suku kata ke not.
 
 | Input | Cara | Perangkat |
 |---|---|---|
-| **Link YouTube** | Tempel link → **Proses** → **Mulai rekam** → pilih *tab ini* + aktifkan **"Bagikan audio tab"**. Bisa direkam 1,5×/2× lebih cepat (Opsi lanjutan). | Chrome / Edge di laptop |
+| **Link YouTube** | Dengan mesin Mac: tempel link → **Proses**, selesai. Tanpa mesin Mac: pilih **Rekam dari YouTube** → *tab ini* + **"Bagikan audio tab"**. | Mac (mesin) / Chrome laptop (rekam) |
 | **File** | Pilih mp3/m4a/wav/mp4 → **Proses**. Paling cepat & akurat. | Semua |
 | **Mikrofon** | Putar lagu dari speaker lain → **Mikrofon** → rekam → **Selesai**. | HP & laptop |
 
-Catatan: browser tidak bisa mengunduh audio YouTube langsung (dibatasi YouTube & keamanan browser), karena itu link
-YouTube diproses dengan merekam audio tab. Tanpa WebGPU (mis. sebagian HP), pisah vokal & lirik berjalan di CPU dan
-jauh lebih lambat — untuk perangkat seperti itu pilih *Piano / instrumen* dan matikan *Lirik otomatis*.
+Catatan: browser tidak bisa mengunduh audio YouTube sendiri (dibatasi YouTube & keamanan browser) dan YouTube memblokir
+server cloud — karena itu unduhan langsung butuh mesin di Mac (IP rumahan). Tanpa WebGPU (mis. sebagian HP), pisah vokal
+& lirik di browser berjalan di CPU dan jauh lebih lambat — pilih *Piano / instrumen* dan matikan *Lirik otomatis*.
 
 Kode worker AI ada di `web/` (bundel: `cd web && npm install && bash build.sh` → `docs/vendor/ai-worker.js`).
 
-Aplikasi Mac di bawah ini **opsional** (unduh YouTube langsung tanpa merekam; Demucs + faster-whisper native).
+Detail pemasangan mesin Mac ada di bagian 1–2 di bawah.
 
 ## 1. Setup (sekali saja, macOS)
 

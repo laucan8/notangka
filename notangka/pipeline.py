@@ -77,9 +77,9 @@ def analyze(job_dir: Path, url: str | None = None, file_path: Path | None = None
     melody_src, harmony_src = wav, None
     stems_ok = False
     if opts.get("separate") and mode != "piano" and has_module("demucs"):
-        progress(0.15, "Memisahkan vokal & musik (Demucs)… bisa 1–3 menit")
+        progress(0.15, "Memisahkan vokal & musik (Demucs, GPU)…")
         try:
-            voc, acc = separate_vocals(wav, job_dir, device=os.environ.get("NOTANGKA_DEMUCS_DEVICE", "cpu"))
+            voc, acc = separate_vocals(wav, job_dir, device=os.environ.get("NOTANGKA_DEMUCS_DEVICE", "auto"))
             stems_ok = True
         except Exception as ex:  # keep going without stems
             meta["warning"] = f"Separasi vokal gagal, lanjut tanpa separasi: {ex}"
